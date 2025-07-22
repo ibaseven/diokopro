@@ -1,4 +1,4 @@
-import { ENTERPRISES_ENDPOINT, GET_ALL_GERANTS } from '@/actions/endpoint';
+import { ENTERPRISES_ENDPOINT, GET_ALL_GERANTS, GET_ALL_GERANTS_BY_ENTREPRISE } from '@/actions/endpoint';
 import { fetchJSON } from '@/lib/api';
 import React from 'react'
 import GerantsView from './GerantView';
@@ -12,7 +12,7 @@ export default async function page() {
       if (!currentEnterpriseId) {
         throw new Error("No enterprise found");
       }
-      const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS}/${currentEnterpriseId}`);
+      const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS_BY_ENTREPRISE}/${currentEnterpriseId}`);
       console.log("+++++++gerant",gerantsResponse);
       
   return (

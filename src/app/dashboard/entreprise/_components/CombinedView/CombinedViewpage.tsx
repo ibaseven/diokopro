@@ -7,7 +7,7 @@ import ServiceDialog from '../_services/ServiceDialog';
 import ClientDialog from '../_clients/ClientDialog';
 import AgentDialog from '../_Agent/AgentDialog';
 import GerantDialog from '../_gerant/GerantDialog';
-import { updateClient, deleteClient, removeClientFromService } from '@/actions/clientreq';
+import { updateClient, deleteClient, removeClientFromService, addServiceToClient, addServiceToAgent, removeAgentFromService } from '@/actions/clientreq';
 import { validateOTP } from '@/actions/service';
 import { updatedGerant } from '@/actions/gerant';
 import { deleteAgent, updatedAgent } from '@/actions/Agent';
@@ -61,7 +61,47 @@ const CombinedView = ({
         setSelectedGerant(gerant);
         setIsGerantDialogOpen(true);
     }, []);
+const handleAddServiceToAgent = useCallback(async (data) => {
+    try {
+        if (!data.agentId || !data.serviceId || !data.niveauService) {
+            toast.error("Données de service invalides");
+            return { type: 'error', error: "Données de service invalides" };
+        }
 
+        // S'assurer que l'entrepriseId est inclus
+        const serviceData = {
+            ...data,
+            entrepriseId: entrepriseId
+        };
+
+        // Appeler l'action d'ajout de service pour agent
+        // Vous devrez créer/importer cette fonction depuis vos actions
+        const result = await addServiceToAgent(serviceData);
+        
+        console.log("Résultat de l'ajout de service à l'agent:", result);
+        
+        // Adapter la structure de réponse
+        if (result.pendingChangeId) {
+            return {
+                type: 'pending',
+                message: result.message || "Un code OTP a été envoyé à l'administrateur",
+                data: {
+                    pendingChangeId: result.pendingChangeId
+                }
+            };
+        } else if (result.type === 'success') {
+            toast.success(result.message || "Service ajouté avec succès");
+        } else if (result.type === 'error') {
+            toast.error(result.error || "Échec de l'ajout du service");
+        }
+        
+        return result;
+    } catch (error) {
+        console.error("Erreur lors de l'ajout du service à l'agent:", error);
+        toast.error("Une erreur est survenue lors de l'ajout du service");
+        return { type: 'error', error: "Une erreur est survenue" };
+    }
+}, [entrepriseId]);
     // Gestion des mises à jour - optimisée avec useCallback pour éviter les re-créations de fonctions
     const handleUpdateClient = useCallback(async (updatedClient) => {
         try {
@@ -89,6 +129,48 @@ const CombinedView = ({
             return { type: 'error', error: "Une erreur est survenue" };
         }
     }, [entrepriseId]);
+
+const handleAddServiceToClient = useCallback(async (data) => {
+    try {
+        if (!data.clientId || !data.serviceId || !data.niveauService) {
+            toast.error("Données de service invalides");
+            return { type: 'error', error: "Données de service invalides" };
+        }
+
+        // S'assurer que l'entrepriseId est inclus
+        const serviceData = {
+            ...data,
+            entrepriseId: entrepriseId
+        };
+
+        // Appeler l'action d'ajout de service
+        const result = await addServiceToClient(serviceData);
+        
+        console.log("Résultat de l'ajout de service:", result);
+        
+        // Adapter la structure de réponse pour correspondre à ce que ClientDialog attend
+        if (result.pendingChangeId) {
+            // Format de réponse que vous avez partagé
+            return {
+                type: 'pending',
+                message: result.message || "Un code OTP a été envoyé à l'administrateur",
+                data: {
+                    pendingChangeId: result.pendingChangeId
+                }
+            };
+        } else if (result.type === 'success') {
+            toast.success(result.message || "Service ajouté avec succès");
+        } else if (result.type === 'error') {
+            toast.error(result.error || "Échec de l'ajout du service");
+        }
+        
+        return result;
+    } catch (error) {
+        console.error("Erreur lors de l'ajout du service:", error);
+        toast.error("Une erreur est survenue lors de l'ajout du service");
+        return { type: 'error', error: "Une erreur est survenue" };
+    }
+}, [entrepriseId]);
 
     const handleUpdateAgent = useCallback(async (updateAgent) => {
         try {
@@ -190,9 +272,24 @@ const CombinedView = ({
         }
     }, [entrepriseId]);
 
-    const handleRemoveFromService = useCallback(async (formData) => {
+    const handleRemoveClientFromService = useCallback(async (formData) => {
         try {
             const result = await removeClientFromService(formData);
+            if (result.type === 'success') {
+                toast.success(result.message || "Client retiré du service avec succès");
+            } else if (result.type === 'error') {
+                toast.error(result.error || "Échec du retrait du service");
+            }
+            return result;
+        } catch (error) {
+            toast.error('Une erreur est survenue lors du retrait du service');
+            return { type: 'error', error: "Une erreur est survenue" };
+        }
+    }, []);
+
+     const handleRemoveAgentFromService = useCallback(async (formData) => {
+        try {
+            const result = await removeAgentFromService(formData);
             if (result.type === 'success') {
                 toast.success(result.message || "Client retiré du service avec succès");
             } else if (result.type === 'error') {
@@ -301,8 +398,10 @@ const CombinedView = ({
                     onClose={() => setIsClientDialogOpen(false)}
                     onUpdate={handleUpdateClient}
                     onDelete={handleDeleteClient}
-                    onRemoveFromService={handleRemoveFromService}
+                    onRemoveFromService={handleRemoveClientFromService}
+                    onAddService={handleAddServiceToClient}
                     verifyOtp={handleVerifyClientOtp}
+                    services={services}
                 />
             )}
 
@@ -315,6 +414,9 @@ const CombinedView = ({
                     onDelete={handleDeleteAgent}
                     verifyOtp={handleVerifyClientOtp}
                     entrepriseId={entrepriseId}
+                     onRemoveFromService={handleRemoveAgentFromService}
+                    services={services}
+                     onAddService={handleAddServiceToAgent}
                 />
             )}
 

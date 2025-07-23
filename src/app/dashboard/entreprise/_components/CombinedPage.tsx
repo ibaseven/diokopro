@@ -43,6 +43,7 @@ console.log(clients);
   const agentsResponse = await fetchJSON(`${GET_ALL_AGENTS}/${currentEnterpriseId}`);
   
   const agents = Array.isArray(agentsResponse) ? agentsResponse : agentsResponse.data || [];
+console.log(agents);
 
   const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS}/${currentEnterpriseId}`);
   

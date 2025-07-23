@@ -31,9 +31,13 @@ export const GET_ALL_AGENTS =`${API_URL}/getAllAgents/entreprise`
 export const ALL_GET_ALL_AGENTS =`${API_URL}/getAllAgentsEntreprise`
 export const ALL_GET_ALL_CLIENTS_ENTREPRISE =`${API_URL}/getAllClientsEntreprise`
 export const DELETE_CLIENT_URL_FOR_A_SERVICE =`${API_URL}/removeServiceFromClient/entreprise`
+export const DELETE_AGENT_URL_FOR_A_SERVICE =`${API_URL}/deleteAgentInService/entreprise`
+
 export const DELETE_CLIENT_URL =`${API_URL}/deleteClient/entreprise`
 export const DELETE_AGENT_URL =`${API_URL}/deleteAgent/entreprise`
 export const UPDATE_CLIENT_URL =`${API_URL}/updateClient/entreprise`
+export const ADD_CLIENT_TO_NEW_SERVICE_URL =`${API_URL}/addServiceToClient/entreprise`
+export const ADD_AGENT_TO_NEW_SERVICE_URL =`${API_URL}/addAgentToService/entreprise`
 export const GET_CLIENT_BY_SERVICE_URL =`${API_URL}/getClientsByService`
 export const GET_CLIENT_BY_ID=`${API_URL}/getClientById`
 export const PENDING_CHANGES_ENDPOINT=`${API_URL}/pending-changes/entreprise`

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createdOrUpdated } from "@/lib/api";
-import { CLIENT_URL, DELETE_CLIENT_URL, DELETE_CLIENT_URL_FOR_A_SERVICE, UPDATE_CLIENT_URL } from "./endpoint";
+import { ADD_AGENT_TO_NEW_SERVICE_URL, ADD_CLIENT_TO_NEW_SERVICE_URL, CLIENT_URL, DELETE_AGENT_URL_FOR_A_SERVICE, DELETE_CLIENT_URL, DELETE_CLIENT_URL_FOR_A_SERVICE, UPDATE_CLIENT_URL } from "./endpoint";
 import axios from "axios";
 import { cookies } from "next/headers";
 
@@ -33,13 +33,19 @@ const ClientSchema = z.object({
 const UpdateClientSchema = ClientSchema.partial().extend({
   clientId: z.string().min(1, { message: "L'ID du client est obligatoire" }),
 });
-
+const UpdateAgentSchema = ClientSchema.partial().extend({
+  agentId: z.string().min(1, { message: "L'ID du client est obligatoire" }),
+});
 const RemoveFromServiceSchema = z.object({
   clientId: z.string().min(1, { message: "L'ID du client est obligatoire" }),
   serviceId: z.string().min(1, { message: "L'ID du service est obligatoire" }),
   entrepriseId: z.string().min(1, { message: "L'ID de l'entreprise est obligatoire" })
 });
-
+const RemoveAgentFromServiceSchema = z.object({
+  agentId: z.string().min(1, { message: "L'ID du client est obligatoire" }),
+  serviceId: z.string().min(1, { message: "L'ID du service est obligatoire" }),
+  entrepriseId: z.string().min(1, { message: "L'ID de l'entreprise est obligatoire" })
+});
 const DeleteClientSchema = z.object({
   clientId: z.string().min(1, { message: "L'ID du client est obligatoire" }),
   entrepriseId: z.string().min(1, { message: "L'ID de l'entreprise est obligatoire" })
@@ -149,7 +155,124 @@ export const updateClient = async (formData) => {
     return { type: "error", error: "Erreur lors de la mise à jour du client" };
   }
 };
+export const addServiceToClient = async (formData) => {
+  console.log("🚀 addServiceToClient - Début de la fonction");
+  console.log("📦 Données reçues:", formData);
 
+  try {
+    // Convertir les champs numériques si nécessaire
+    const processedData = {
+      ...formData,
+      salaire: typeof formData.salaire === 'string' ? Number(formData.salaire) : formData.salaire,
+      intervallePaiement: typeof formData.intervallePaiement === 'string' ? Number(formData.intervallePaiement) : formData.intervallePaiement,
+      jourPaiement: typeof formData.jourPaiement === 'string' ? Number(formData.jourPaiement) : formData.jourPaiement,
+    };
+
+    console.log("🔄 Données après conversion des types:", processedData);
+
+    // Validation des données
+    const validation = UpdateClientSchema.safeParse(processedData);
+
+    if (!validation.success) {
+      console.log("❌ Échec de la validation:", validation.error.flatten());
+      return { type: "error", errors: validation.error.flatten().fieldErrors };
+    }
+
+    console.log("✅ Validation réussie");
+
+    // Extraire les données validées
+    const { entrepriseId, serviceId, clientId, niveauService, useTarifBase, ...clientData } = validation.data;
+
+    // Log des données validées
+    console.log("📋 Données validées:", { 
+      entrepriseId,
+      serviceId,
+      clientId,
+      niveauService,
+      useTarifBase,
+      ...clientData
+    });
+
+    // Construction de l'URL pour l'ajout de service (URL CORRECTE)
+    const apiUrl = `${ADD_CLIENT_TO_NEW_SERVICE_URL}/${entrepriseId}/service/${serviceId}/client/${clientId}`;
+    console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
+
+    // Préparer les données à envoyer à l'API
+    const dataToSend = { 
+      ...clientData,
+      // Ajouter ces champs seulement s'ils sont définis dans la demande de mise à jour
+      ...(niveauService !== undefined && {
+        useTarifBase: useTarifBase || niveauService === "tarifBase",
+        niveauService: (useTarifBase || niveauService === "tarifBase") ? null : niveauService
+      })
+    };
+
+    console.log("📤 Données à envoyer à l'API:", dataToSend);
+    console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
+
+    // Appel à l'API avec l'URL CORRECTE pour l'ajout de service
+    const response = await createdOrUpdated({ 
+      url: apiUrl, // Utiliser l'URL correcte pour l'ajout de service
+      data: dataToSend,
+      updated: true // C'est un ajout, pas une mise à jour
+    });
+
+    console.log("📥 Réponse brute de l'API:", response);
+
+    // Détection d'une réponse OTP
+    if (response && response.pendingChangeId) {
+      console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
+      
+      // Retourner le format attendu par le composant ClientDialog
+      return {
+        type: "pending",
+        message: response.message || "Un code OTP a été envoyé à l'administrateur",
+        data: {
+          pendingChangeId: response.pendingChangeId
+        }
+      };
+    }
+
+    // Si la réponse indique un succès
+    if (response && (response.success === true || response.type === 'success')) {
+      console.log("✅ Service ajouté avec succès");
+      return { 
+        type: "success", 
+        message: "Service ajouté avec succès",
+        data: response 
+      };
+    }
+
+    // Cas par défaut (réponse non reconnue)
+    console.log("⚠️ Format de réponse non reconnu:", response);
+    return { 
+      type: "success", // Par défaut on suppose que c'est un succès
+      data: response 
+    };
+  } catch (error) {
+    console.error("❌ Erreur dans addServiceToClient:", error);
+    
+    // Log détaillé de l'erreur
+    if (error.response) {
+      console.log("📌 Détails de l'erreur de réponse:");
+      console.log("- Status:", error.response.status);
+      console.log("- Data:", error.response.data);
+      console.log("- Headers:", error.response.headers);
+    } else if (error.request) {
+      console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
+      console.log("- Request:", error.request);
+    } else {
+      console.log("📌 Erreur lors de la configuration de la requête:", error.message);
+    }
+    
+    // Retourner une erreur formatée
+    if (error.response?.data?.message) {
+      return { type: "error", error: error.response.data.message };
+    }
+    
+    return { type: "error", error: "Erreur lors de l'ajout du service au client" };
+  }
+};
 export const removeClientFromService = async (formData) => {
   console.log("Début removeClientFromService - Données reçues:", formData);
 
@@ -213,7 +336,69 @@ export const removeClientFromService = async (formData) => {
     return { type: "error", error: "Erreur lors du retrait du client du service" };
   }
 };
+export const removeAgentFromService = async (formData) => {
+  console.log("Début removeClientFromService - Données reçues:", formData);
 
+  try {
+    const formObject = formData instanceof FormData
+      ? Object.fromEntries(formData.entries())
+      : formData;
+    
+    const validation = RemoveAgentFromServiceSchema.safeParse(formObject);
+
+    if (!validation.success) {
+      console.log("Échec validation:", validation.error.flatten());
+      return { type: "error", errors: validation.error.flatten().fieldErrors };
+    }
+
+    const { entrepriseId, serviceId, agentId } = validation.data;
+
+    const apiUrl = `${DELETE_AGENT_URL_FOR_A_SERVICE}/${entrepriseId}/service/${serviceId}/agent/${agentId}`;
+    console.log("URL de l'API pour retrait du service:", apiUrl);
+
+    // Suppression logique via createOrUpdate
+    const response = await createdOrUpdated({
+      url: apiUrl,
+      data: { agentId, serviceId, isDeleted: true },
+      updated: true
+    });
+    
+    // Log complet de la réponse pour diagnostic
+    console.log("Réponse complète:", response);
+    
+    // Vérifier si la réponse est correctement formatée
+    if (!response) {
+      console.error("Réponse vide de l'API");
+      return { type: "error", error: "Réponse vide de l'API" };
+    }
+    
+    // Vérifier si un ID de changement en attente est présent dans la réponse
+    // Adapter selon la structure réelle de votre réponse
+    if (response.pendingChangeId || (response.data && response.data.pendingChangeId)) {
+      const pendingId = response.pendingChangeId || response.data.pendingChangeId;
+      return {
+        type: "pending",
+        message: "Un code OTP a été envoyé pour confirmer le retrait du service",
+        data: { pendingChangeId: pendingId }
+      };
+    }
+    
+    // Si tout s'est bien passé mais sans OTP
+    return { 
+      type: "success", 
+      message: "Client retiré du service avec succès",
+      data: { type: 'success' }
+    };
+  } catch (error) {
+    console.error("Erreur dans removeClientFromService:", error);
+    
+    if (error.response?.data?.message) {
+      return { type: "error", error: error.response.data.message };
+    }
+    
+    return { type: "error", error: "Erreur lors du retrait du client du service" };
+  }
+};
 export async function deleteClient(formData) {
   console.log("Début deleteClient - Données reçues:", formData);
 
@@ -293,3 +478,123 @@ export async function deleteClient(formData) {
     };
   }
 }
+
+
+export const addServiceToAgent = async (formData) => {
+  console.log("🚀 addServiceToClient - Début de la fonction");
+  console.log("📦 Données reçues:", formData);
+
+  try {
+    // Convertir les champs numériques si nécessaire
+    const processedData = {
+      ...formData,
+      salaire: typeof formData.salaire === 'string' ? Number(formData.salaire) : formData.salaire,
+      intervallePaiement: typeof formData.intervallePaiement === 'string' ? Number(formData.intervallePaiement) : formData.intervallePaiement,
+      jourPaiement: typeof formData.jourPaiement === 'string' ? Number(formData.jourPaiement) : formData.jourPaiement,
+    };
+
+    console.log("🔄 Données après conversion des types:", processedData);
+
+    // Validation des données
+    const validation = UpdateAgentSchema.safeParse(processedData);
+
+    if (!validation.success) {
+      console.log("❌ Échec de la validation:", validation.error.flatten());
+      return { type: "error", errors: validation.error.flatten().fieldErrors };
+    }
+
+    console.log("✅ Validation réussie");
+
+    // Extraire les données validées
+    const { entrepriseId, serviceId, agentId, niveauService, useTarifBase, ...clientData } = validation.data;
+
+    // Log des données validées
+    console.log("📋 Données validées:", { 
+      entrepriseId,
+      serviceId,
+      agentId,
+      niveauService,
+      useTarifBase,
+      ...clientData
+    });
+
+    // Construction de l'URL pour l'ajout de service (URL CORRECTE)
+    const apiUrl = `${ADD_AGENT_TO_NEW_SERVICE_URL}/${entrepriseId}/service/${serviceId}/agent/${agentId}`;
+    console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
+
+    // Préparer les données à envoyer à l'API
+    const dataToSend = { 
+      ...clientData,
+      // Ajouter ces champs seulement s'ils sont définis dans la demande de mise à jour
+      ...(niveauService !== undefined && {
+        useTarifBase: useTarifBase || niveauService === "tarifBase",
+        niveauService: (useTarifBase || niveauService === "tarifBase") ? null : niveauService
+      })
+    };
+
+    console.log("📤 Données à envoyer à l'API:", dataToSend);
+    console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
+
+    // Appel à l'API avec l'URL CORRECTE pour l'ajout de service
+    const response = await createdOrUpdated({ 
+      url: apiUrl, // Utiliser l'URL correcte pour l'ajout de service
+      data: dataToSend,
+      updated: true // C'est un ajout, pas une mise à jour
+    });
+
+    console.log("📥 Réponse brute de l'API:", response);
+
+    // Détection d'une réponse OTP
+    if (response && response.pendingChangeId) {
+      console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
+      
+      // Retourner le format attendu par le composant ClientDialog
+      return {
+        type: "pending",
+        message: response.message || "Un code OTP a été envoyé à l'administrateur",
+        data: {
+          pendingChangeId: response.pendingChangeId
+        }
+      };
+    }
+
+    // Si la réponse indique un succès
+    if (response && (response.success === true || response.type === 'success')) {
+      console.log("✅ Service ajouté avec succès");
+      return { 
+        type: "success", 
+        message: "Service ajouté avec succès",
+        data: response 
+      };
+    }
+
+    // Cas par défaut (réponse non reconnue)
+    console.log("⚠️ Format de réponse non reconnu:", response);
+    return { 
+      type: "success", // Par défaut on suppose que c'est un succès
+      data: response 
+    };
+  } catch (error) {
+    console.error("❌ Erreur dans addServiceToClient:", error);
+    
+    // Log détaillé de l'erreur
+    if (error.response) {
+      console.log("📌 Détails de l'erreur de réponse:");
+      console.log("- Status:", error.response.status);
+      console.log("- Data:", error.response.data);
+      console.log("- Headers:", error.response.headers);
+    } else if (error.request) {
+      console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
+      console.log("- Request:", error.request);
+    } else {
+      console.log("📌 Erreur lors de la configuration de la requête:", error.message);
+    }
+    
+    // Retourner une erreur formatée
+    if (error.response?.data?.message) {
+      return { type: "error", error: error.response.data.message };
+    }
+    
+    return { type: "error", error: "Erreur lors de l'ajout du service au client" };
+  }
+};

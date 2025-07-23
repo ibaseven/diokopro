@@ -21,15 +21,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { X, Trash2, Edit } from 'lucide-react';
+import { X, Trash2, Edit, Plus } from 'lucide-react';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import OtpInput from '../_Agent/OtpInput';
 
 
+interface NiveauService {
+  nom: string;
+  tarif: number;
+  _id?: string;
+}
+
 interface Service {
   _id: string;
   nomService: string;
+  niveauxDisponibles?: NiveauService[];
+  entrepriseId?: string;
 }
 
 interface Client {
@@ -55,7 +63,9 @@ interface ClientDialogProps {
   onUpdate: (updatedClient: any) => Promise<any>;
   onDelete?: (formData: any) => Promise<any>;
   onRemoveFromService?: (formData: any) => Promise<any>;
+  onAddService?: (formData: any) => Promise<any>; // New prop for adding service
   verifyOtp: (formData: any) => Promise<any>;
+  services?: Service[]; // Services disponibles
 }
 
 const ClientDialog: React.FC<ClientDialogProps> = ({ 
@@ -66,7 +76,9 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
   onUpdate,
   onDelete,
   onRemoveFromService,
-  verifyOtp
+  onAddService,
+  verifyOtp,
+  services = []
 }) => {
   const router = useRouter();
   
@@ -78,13 +90,16 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRemovingFromService, setIsRemovingFromService] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedNiveauService, setSelectedNiveauService] = useState('');
+  const [selectedServiceNiveaux, setSelectedServiceNiveaux] = useState<NiveauService[]>([]);
+  const [isAddingService, setIsAddingService] = useState(false);
 
   // États pour la gestion de l'OTP
   const [otpCode, setOtpCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [pendingChangeId, setPendingChangeId] = useState('');
-  const [operationType, setOperationType] = useState<'update' | 'delete' | 'removeFromService'>('update');
+  const [operationType, setOperationType] = useState<'update' | 'delete' | 'removeFromService' | 'addService'>('update');
   
   // Réinitialiser le formulaire lorsque le client change
   useEffect(() => {
@@ -103,15 +118,35 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
       setPendingChangeId('');
       setOperationType('update');
       setSelectedServiceId('');
+      setSelectedNiveauService('');
+      setIsAddingService(false);
     }
   }, [client]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
+  };
+
+  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setSelectedServiceId(selectedId);
+    
+    // Récupérer les niveaux disponibles pour ce service
+    const selectedService = services.find(service => service._id === selectedId);
+    if (selectedService && selectedService.niveauxDisponibles) {
+      setSelectedServiceNiveaux(selectedService.niveauxDisponibles);
+      setSelectedNiveauService(''); // Réinitialiser le niveau de service sélectionné
+    } else {
+      setSelectedServiceNiveaux([]);
+    }
+  };
+
+  const handleNiveauServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedNiveauService(e.target.value);
   };
   
   // Gérer la mise à jour du client
@@ -161,6 +196,75 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
       setIsVerifying(false);
     }
   };
+  
+  // Gérer l'ajout d'un service au client
+ // Gérer l'ajout d'un service au client
+const handleAddService = async () => {
+  if (!client || !onAddService || !selectedServiceId || !selectedNiveauService) {
+    toast.error("Veuillez sélectionner un service et un niveau");
+    return;
+  }
+  
+  setIsAddingService(false); // Ferme le mode d'ajout de service
+  
+  try {
+    setIsVerifying(true);
+    setOperationType('addService');
+    
+    // Préparer les données pour l'ajout de service
+    const addServiceData = {
+      clientId: client._id,
+      serviceId: selectedServiceId,
+      niveauService: selectedNiveauService,
+      entrepriseId: entrepriseId
+    };
+    
+    console.log("Données d'ajout de service:", addServiceData);
+    
+    const result = await onAddService(addServiceData);
+    
+    if (!result) {
+      toast.error("Erreur lors de l'ajout du service");
+      setIsVerifying(false);
+      return;
+    }
+    
+    console.log("Résultat d'ajout de service:", result);
+    
+    // Vérifier tous les formats possibles de réponse OTP
+    if (
+      // Format standard
+      (result.type === 'pending' && result.data?.pendingChangeId) ||
+      // Format alternatif
+      (result.pendingChangeId) ||
+      // Format spécifique que vous avez partagé
+      (result.message && result.message.includes("attente de validation") && result.pendingChangeId)
+    ) {
+      // Extraire le pendingChangeId selon le format de la réponse
+      const pendingId = result.data?.pendingChangeId || result.pendingChangeId;
+      
+      // Si un OTP est nécessaire pour l'ajout de service
+      setPendingChangeId(pendingId);
+      setShowOtpVerification(true);
+      toast.info(result.message || "Un code OTP a été envoyé à l'administrateur pour confirmer l'ajout du service");
+      
+      console.log("Mode OTP activé, pendingChangeId:", pendingId);
+    } else if (result.type === 'success') {
+      // Si l'ajout est réussi sans besoin d'OTP
+      toast.success("Le service a été ajouté avec succès!");
+      onClose();
+      router.refresh();
+    } else {
+      // Cas d'erreur ou autre cas non géré
+      toast.error(result.message || result.error || "Erreur lors de l'ajout du service");
+    }
+  } catch (error) {
+    console.error("Error during service addition:", error);
+    toast.error("Une erreur est survenue lors de l'ajout du service");
+  } finally {
+    setIsVerifying(false);
+  }
+};
   
   // Gérer la suppression définitive du client
   const handleDeleteClient = async () => {
@@ -259,71 +363,96 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
   };
   
   // Gérer la vérification OTP
-  const handleOtpVerification = async () => {
-    if (!pendingChangeId) {
-      console.error("Aucun identifiant de changement en attente");
-      toast.error("Une erreur est survenue. Veuillez réessayer.");
+// Gérer la vérification OTP
+const handleOtpVerification = async () => {
+  if (!pendingChangeId) {
+    console.error("Aucun identifiant de changement en attente");
+    toast.error("Une erreur est survenue. Veuillez réessayer.");
+    return;
+  }
+
+  if (!otpCode || otpCode.length !== 6) {
+    toast.error("Veuillez entrer un code OTP valide à 6 chiffres");
+    return;
+  }
+
+  setIsVerifying(true);
+  try {
+    // Préparer les données pour la vérification OTP
+    const otpData = {
+      otp: otpCode,
+      code: otpCode, // Garder "code" également au cas où
+      pendingChangeId: pendingChangeId,
+      actionType: operationType,
+      serviceId: ['removeFromService', 'addService'].includes(operationType) ? selectedServiceId : undefined,
+      niveauService: operationType === 'addService' ? selectedNiveauService : undefined,
+      entrepriseId: entrepriseId // Assurez-vous d'inclure l'entrepriseId
+    };
+    
+    console.log("Vérification OTP avec:", otpData);
+    
+    // Appeler la fonction de vérification OTP
+    const result = await verifyOtp(otpData);
+    
+    // Vérifier si le résultat existe
+    if (!result) {
+      console.error("Résultat de vérification OTP indéfini");
+      toast.error("Échec de la vérification OTP");
       return;
     }
-
-    setIsVerifying(true);
-    try {
-      // Préparer les données pour la vérification OTP
-      const otpData = {
-        otp: otpCode,
-        code: otpCode, // Garder "code" également au cas où
-        pendingChangeId: pendingChangeId,
-        actionType: operationType,
-        serviceId: operationType === 'removeFromService' ? selectedServiceId : undefined
-      };
+    
+    console.log("Résultat de vérification OTP:", result);
+    
+    // Vérifier tous les formats possibles de réponse de succès
+    if (result.success || result.type === 'success' || result.status === 'success' || 
+        (result.data && (result.data.type === 'success' || result.data.status === 'success'))) {
+      let successMessage = "";
       
-      console.log("Vérification OTP avec:", otpData);
-      
-      // Appeler la fonction de vérification OTP
-      const result = await verifyOtp(otpData);
-      
-      // Vérifier si le résultat existe
-      if (!result) {
-        console.error("Résultat de vérification OTP indéfini");
-        toast.error("Échec de la vérification OTP");
-        return;
+      switch(operationType) {
+        case 'update':
+          successMessage = "Le client a été mis à jour avec succès!";
+          break;
+        case 'delete':
+          successMessage = "Le client a été supprimé avec succès!";
+          break;
+        case 'removeFromService':
+          successMessage = "Le client a été retiré du service avec succès!";
+          break;
+        case 'addService':
+          successMessage = "Le service a été ajouté au client avec succès!";
+          break;
+        default:
+          successMessage = "Opération réussie!";
       }
       
-      console.log("Résultat de vérification OTP:", result);
+      toast.success(successMessage);
       
-      if (result.type === 'success' || result.status === 'success') {
-        let successMessage = "";
-        
-        switch(operationType) {
-          case 'update':
-            successMessage = "Le client a été mis à jour avec succès!";
-            break;
-          case 'delete':
-            successMessage = "Le client a été supprimé avec succès!";
-            break;
-          case 'removeFromService':
-            successMessage = "Le client a été retiré du service avec succès!";
-            break;
-          default:
-            successMessage = "Opération réussie!";
-        }
-        
-        toast.success(successMessage);
-        
-        // Fermer la boîte de dialogue et rafraîchir la page
-        onClose();
-        router.refresh();
-      } else {
-        toast.error(result.message || "Échec de la vérification OTP");
+      // Fermer la boîte de dialogue et rafraîchir la page
+      onClose();
+      router.refresh();
+    } else {
+      // Gestion des erreurs
+      const errorMsg = result.message || result.error || "Échec de la vérification OTP";
+      toast.error(errorMsg);
+      
+      // Afficher les erreurs détaillées si disponibles
+      if (result.errors) {
+        Object.values(result.errors).forEach((errorArray: any) => {
+          if (Array.isArray(errorArray)) {
+            errorArray.forEach((error: string) => {
+              toast.error(error);
+            });
+          }
+        });
       }
-    } catch (error) {
-      console.error("Error verifying OTP:", error);
-      toast.error("Échec de la vérification. Veuillez réessayer.");
-    } finally {
-      setIsVerifying(false);
     }
-  };
-
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    toast.error("Échec de la vérification. Veuillez réessayer.");
+  } finally {
+    setIsVerifying(false);
+  }
+};
   // Fonctions pour afficher les boîtes de dialogue de confirmation
   const showDeleteConfirmation = () => {
     setIsDeleting(true);
@@ -332,6 +461,16 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
   const showRemoveFromServiceConfirmation = (serviceId: string) => {
     setSelectedServiceId(serviceId);
     setIsRemovingFromService(true);
+  };
+
+  // Fonction pour activer le mode d'ajout de service
+  const toggleAddServiceMode = () => {
+    setIsAddingService(!isAddingService);
+    if (!isAddingService) {
+      setSelectedServiceId('');
+      setSelectedNiveauService('');
+      setSelectedServiceNiveaux([]);
+    }
   };
 
   if (!client) return null;
@@ -361,6 +500,7 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
                     case 'update': return "Vérification OTP - Modification";
                     case 'delete': return "Vérification OTP - Suppression";
                     case 'removeFromService': return "Vérification OTP - Retrait du service";
+                    case 'addService': return "Vérification OTP - Ajout de service";
                     default: return "Vérification OTP";
                   }
                 })()}
@@ -369,6 +509,7 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
                     case 'update': return "Un code OTP a été envoyé pour confirmer la modification du client.";
                     case 'delete': return "Un code OTP a été envoyé pour confirmer la suppression définitive.";
                     case 'removeFromService': return "Un code OTP a été envoyé pour confirmer le retrait du service.";
+                    case 'addService': return "Un code OTP a été envoyé pour confirmer l'ajout du service.";
                     default: return "Un code de vérification à 6 chiffres a été envoyé à l'administrateur.";
                   }
                 })()}
@@ -513,6 +654,91 @@ const ClientDialog: React.FC<ClientDialogProps> = ({
                           </div>
                         ) : (
                           <span className="text-gray-500">Aucun service choisi</span>
+                        )}
+                        
+                        {/* Bouton pour ajouter un service */}
+                        {onAddService && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={toggleAddServiceMode}
+                          >
+                            {isAddingService ? (
+                              <>Annuler</>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Ajouter un service
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
+                        {/* Formulaire d'ajout de service */}
+                        {isAddingService && (
+                          <div className="mt-4 p-3 border rounded-md bg-gray-50">
+                            <h4 className="font-medium mb-2">Ajouter un service</h4>
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor="service-select">Service</Label>
+                                <select
+                                  id="service-select"
+                                  className="w-full border border-gray-300 rounded-md p-2 mt-1"
+                                  value={selectedServiceId}
+                                  onChange={handleServiceChange}
+                                >
+                                  <option value="">Sélectionner un service</option>
+                                  {Array.isArray(services) && services.length > 0 ? (
+                                    services
+                                      // Filtrer les services déjà sélectionnés
+                                      .filter(service => 
+                                        !client.servicesChoisis?.some(clientService => 
+                                          clientService._id === service._id
+                                        )
+                                      )
+                                      .map(service => (
+                                        <option key={service._id} value={service._id}>
+                                          {service.nomService}
+                                        </option>
+                                      ))
+                                  ) : (
+                                    <option value="" disabled>Aucun service disponible</option>
+                                  )}
+                                </select>
+                              </div>
+                              
+                              {selectedServiceId && selectedServiceNiveaux.length > 0 && (
+                                <div>
+                                  <Label htmlFor="niveau-select">Niveau de service</Label>
+                                  <select
+                                    id="niveau-select"
+                                    className="w-full border border-gray-300 rounded-md p-2 mt-1"
+                                    value={selectedNiveauService}
+                                    onChange={handleNiveauServiceChange}
+                                  >
+                                    <option value="">Sélectionner un niveau</option>
+                                    {selectedServiceNiveaux.map((niveau, index) => (
+                                      <option key={niveau._id || index} value={niveau.nom}>
+                                        {niveau.nom} - {niveau.tarif} FCFA
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                              
+                              <div className="flex justify-end mt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleAddService}
+                                  disabled={!selectedServiceId || !selectedNiveauService}
+                                >
+                                  Ajouter
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

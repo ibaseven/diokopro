@@ -178,7 +178,7 @@ const ClientsByServiceView: React.FC<ClientsByServiceViewProps> = ({ clients, se
                       <div className="text-sm text-gray-500">
                         {client.servicesChoisis && client.servicesChoisis.length > 0
                           ? client.servicesChoisis[0]?.nomService
-                          : "Hello Word"
+                          : ""
                         }
                       </div>
                     </td>

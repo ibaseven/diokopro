@@ -223,7 +223,7 @@ const PaymentListView = ({ clients, agents }) => {
                                                 <div className="text-sm text-gray-500">
                                                     {agent.servicesAffecte && agent.servicesAffecte.length > 0
                                                         ? agent.servicesAffecte[0]?.nomService
-                                                        : "Hello Word"
+                                                        : ""
                                                     }
                                                 </div>
                                             </td>
@@ -319,7 +319,7 @@ const PaymentListView = ({ clients, agents }) => {
                                                 <div className="text-sm text-gray-500">
                                                     {client.servicesChoisis && client.servicesChoisis.length > 0
                                                         ? client.servicesChoisis[0]?.nomService
-                                                        : "Hello Word"
+                                                        : ""
                                                     }
                                                 </div>
                                             </td>

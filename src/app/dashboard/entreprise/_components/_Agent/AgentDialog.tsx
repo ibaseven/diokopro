@@ -1,4 +1,3 @@
-"use client";
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -6,7 +5,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,31 +20,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { X, Trash2, Edit, CreditCard, Calendar, Tag, User, ArrowDown, ArrowUp } from 'lucide-react';
+import { X, Trash2, Edit, Plus, CreditCard, Calendar, Tag, User } from 'lucide-react';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import OtpInput from '../_Agent/OtpInput';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Interface for Buffer objects (often found in MongoDB)
-interface BufferData {
-  data: number[];
-  type: string;
+interface NiveauService {
+  nom: string;
+  tarif: number;
+  _id?: string;
 }
 
-// Interface for expediteur/sender 
+interface Service {
+  _id: string;
+  nomService: string;
+  niveauxDisponibles?: NiveauService[];
+  entrepriseId?: string;
+}
+
 interface Expediteur {
   id: string;
   nom: string;
   prenom: string;
 }
 
-// Interface for entreprise
 interface Entreprise {
   id: string;
 }
 
-// Interface for standard payment
 interface Paiement {
   _id: string;
   paiementId?: string;
@@ -57,10 +59,8 @@ interface Paiement {
   entreprise?: Entreprise;
 }
 
-// Interface for transfers received
 interface VirementRecu {
   _id: string;
-  buffer?: BufferData;
   datePaiement?: string;
   montant?: number;
   paiementId?: string;
@@ -69,12 +69,7 @@ interface VirementRecu {
   entreprise?: Entreprise;
 }
 
-interface Service {
-  _id: string;
-  nomService: string;
-}
-
-interface Client {
+interface Agent {
   _id: string;
   nom: string;
   prenom: string;
@@ -85,23 +80,25 @@ interface Client {
   estNouveau: boolean;
   dateCreation?: string;
   entrepriseId?: string;
-  servicesChoisis?: Service[];
+  servicesAffecte?: Service[];
   paiementsEffectues?: Paiement[];
   virementsRecus?: VirementRecu[];
 }
 
-interface ClientDialogProps {
-  agent: Client | null;
+interface AgentDialogProps {
+  agent: Agent | null;
   entrepriseId: string;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (updatedClient: any) => Promise<any>;
+  onUpdate: (updatedAgent: any) => Promise<any>;
   onDelete?: (formData: any) => Promise<any>;
   onRemoveFromService?: (formData: any) => Promise<any>;
+  onAddService?: (formData: any) => Promise<any>;
   verifyOtp: (formData: any) => Promise<any>;
+  services?: Service[];
 }
 
-const AgentDialog: React.FC<ClientDialogProps> = ({ 
+const AgentDialog: React.FC<AgentDialogProps> = ({ 
   agent, 
   entrepriseId,
   isOpen, 
@@ -109,185 +106,278 @@ const AgentDialog: React.FC<ClientDialogProps> = ({
   onUpdate,
   onDelete,
   onRemoveFromService,
-  verifyOtp
+  onAddService,
+  verifyOtp,
+  services = []
 }) => {
   const router = useRouter();
   
-  // États pour la gestion du formulaire
-  const [formData, setFormData] = useState<Partial<Client>>({});
+  // Form state
+  const [formData, setFormData] = useState<Partial<Agent>>({});
   
-  // États pour la gestion des opérations
+  // Operation states
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRemovingFromService, setIsRemovingFromService] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedNiveauService, setSelectedNiveauService] = useState('');
+  const [selectedServiceNiveaux, setSelectedServiceNiveaux] = useState<NiveauService[]>([]);
+  const [isAddingService, setIsAddingService] = useState(false);
+  
+  // Payment and transfer states
   const [selectedPayment, setSelectedPayment] = useState<Paiement | null>(null);
   const [selectedTransfer, setSelectedTransfer] = useState<VirementRecu | null>(null);
   const [showPaymentDetails, setShowPaymentDetails] = useState(false);
   const [showTransferDetails, setShowTransferDetails] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
 
-  // États pour la gestion de l'OTP
+  // OTP states
   const [otpCode, setOtpCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [pendingChangeId, setPendingChangeId] = useState('');
-  const [operationType, setOperationType] = useState<'update' | 'delete' | 'removeFromService'>('update');
+  const [operationType, setOperationType] = useState<'update' | 'delete' | 'removeFromService' | 'addService'>('update');
   
-  // Réinitialiser le formulaire lorsque le client change
- // Update the useEffect hook to include setting activeTab to "profile" when isEditing changes
-useEffect(() => {
-  if (agent) {
-    setFormData({
-      nom: agent.nom || '',
-      prenom: agent.prenom || '',
-      email: agent.email || '',
-      telephone: agent.telephone || '',
-      adresse: agent.adresse || '',
-      nin: agent.nin || '',
-    });
-    setIsEditing(false);
-    setShowOtpVerification(false);
-    setOtpCode('');
-    setPendingChangeId('');
-    setOperationType('update');
-    setSelectedServiceId('');
-    setSelectedPayment(null);
-    setSelectedTransfer(null);
-    setShowPaymentDetails(false);
-    setShowTransferDetails(false);
-    setActiveTab("profile");
-  }
-}, [agent]);
+  // Reset form when agent changes
+  useEffect(() => {
+    if (agent) {
+      setFormData({
+        nom: agent.nom || '',
+        prenom: agent.prenom || '',
+        email: agent.email || '',
+        telephone: agent.telephone || '',
+        adresse: agent.adresse || '',
+        nin: agent.nin || '',
+      });
+      setIsEditing(false);
+      setShowOtpVerification(false);
+      setOtpCode('');
+      setPendingChangeId('');
+      setOperationType('update');
+      setSelectedServiceId('');
+      setSelectedNiveauService('');
+      setIsAddingService(false);
+      setSelectedPayment(null);
+      setSelectedTransfer(null);
+      setShowPaymentDetails(false);
+      setShowTransferDetails(false);
+      setActiveTab("profile");
+    }
+  }, [agent]);
 
-// Also add an effect to force profile tab when editing starts
-useEffect(() => {
-  if (isEditing) {
-    setActiveTab("profile");
-  }
-}, [isEditing]);
+  // Force profile tab when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setActiveTab("profile");
+    }
+  }, [isEditing]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
   };
+
+  // Handle service selection
+  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setSelectedServiceId(selectedId);
+    
+    // Get available levels for this service
+    const selectedService = services.find(service => service._id === selectedId);
+    if (selectedService && selectedService.niveauxDisponibles) {
+      setSelectedServiceNiveaux(selectedService.niveauxDisponibles);
+      setSelectedNiveauService(''); // Reset selected service level
+    } else {
+      setSelectedServiceNiveaux([]);
+    }
+  };
+
+  // Handle service level selection
+  const handleNiveauServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedNiveauService(e.target.value);
+  };
   
-  // Gérer la mise à jour du client
+  // Handle agent update
   const handleUpdate = async () => {
     if (!agent || !onUpdate) return;
     
-    const updatedClient = {
+    const updatedAgent = {
       ...agent,
       ...formData,
-      clientId: agent._id,
+      agentId: agent._id,
       entrepriseId: entrepriseId,
-      serviceId: agent.servicesChoisis?.[0]?._id
+      serviceId: agent.servicesAffecte?.[0]?._id
     };
     
     try {
       setIsVerifying(true);
       setOperationType('update');
-      const result = await onUpdate(updatedClient);
+      const result = await onUpdate(updatedAgent);
       
       if (!result) {
-        console.error("Résultat de mise à jour indéfini");
-        toast.error("Erreur lors de la mise à jour");
+        console.error("Update result undefined");
+        toast.error("Error updating agent");
         setIsVerifying(false);
         return;
       }
       
-      console.log("Résultat de mise à jour:", result);
+      console.log("Update result:", result);
       
       if (result.data?.pendingChangeId) {
-        // Si nous avons un pendingChangeId, nous devons collecter un OTP
+        // If we have a pendingChangeId, we need to collect an OTP
         setPendingChangeId(result.data.pendingChangeId);
         setIsEditing(false);
         setShowOtpVerification(true);
-        toast.info(result.message || "Un code OTP a été envoyé à l'administrateur");
+        toast.info(result.message || "An OTP code has been sent to the administrator");
       } else if (result.type === 'success' || result.data?.type === 'success') {
-        // Si la mise à jour est réussie sans besoin d'OTP
-        toast.success("Le client a été mis à jour avec succès!");
+        // If the update is successful without OTP
+        toast.success("The agent has been updated successfully!");
         onClose();
         router.refresh();
       } else {
-        toast.error(result.error || "Erreur lors de la mise à jour");
+        toast.error(result.error || "Error during update");
       }
     } catch (error) {
       console.error("Error during update:", error);
-      toast.error("Une erreur est survenue");
+      toast.error("An error occurred");
     } finally {
       setIsVerifying(false);
     }
   };
   
-  // Gérer la suppression définitive du client
- // Gérer la suppression définitive du client
-const handleDeleteClient = async () => {
-  setIsDeleting(false); // Ferme la boîte de dialogue de confirmation
-  
-  if (!agent || !onDelete) return;
-  
-  try {
-    setIsVerifying(true);
-    setOperationType('delete');
+  // Handle adding a service to the agent
+  const handleAddService = async () => {
+    if (!agent || !onAddService || !selectedServiceId || !selectedNiveauService) {
+      toast.error("Please select a service and a level");
+      return;
+    }
     
-    // Préparer les données pour la suppression en incluant à la fois clientId et agentId
-    const deleteData = {
-      clientId: agent._id,
-      agentId: agent._id, // Ajout de l'agentId en plus du clientId
-      entrepriseId: entrepriseId
-    };
+    setIsAddingService(false); // Close service addition mode
     
-    console.log("Données de suppression:", deleteData);
-    
-    const result = await onDelete(deleteData);
-    
-    console.log("Résultat de suppression:", result);
-    
-    if (!result) {
-      toast.error("Erreur lors de la suppression");
+    try {
+      setIsVerifying(true);
+      setOperationType('addService');
+      
+      // Prepare data for service addition
+      const addServiceData = {
+        agentId: agent._id,
+        serviceId: selectedServiceId,
+        niveauService: selectedNiveauService,
+        entrepriseId: entrepriseId
+      };
+      
+      console.log("Service addition data:", addServiceData);
+      
+      const result = await onAddService(addServiceData);
+      
+      if (!result) {
+        toast.error("Error adding service");
+        setIsVerifying(false);
+        return;
+      }
+      
+      console.log("Service addition result:", result);
+      
+      // Check all possible OTP response formats
+      if (
+        // Standard format
+        (result.type === 'pending' && result.data?.pendingChangeId) ||
+        // Alternative format
+        (result.pendingChangeId) ||
+        // Specific format
+        (result.message && result.message.includes("attente de validation") && result.pendingChangeId)
+      ) {
+        // Extract pendingChangeId according to response format
+        const pendingId = result.data?.pendingChangeId || result.pendingChangeId;
+        
+        // If OTP is needed for service addition
+        setPendingChangeId(pendingId);
+        setShowOtpVerification(true);
+        toast.info(result.message || "An OTP code has been sent to the administrator to confirm service addition");
+        
+        console.log("OTP mode activated, pendingChangeId:", pendingId);
+      } else if (result.type === 'success') {
+        // If addition is successful without OTP
+        toast.success("The service has been added successfully!");
+        onClose();
+        router.refresh();
+      } else {
+        // Error case or other unhandled case
+        toast.error(result.message || result.error || "Error adding service");
+      }
+    } catch (error) {
+      console.error("Error during service addition:", error);
+      toast.error("An error occurred during service addition");
+    } finally {
       setIsVerifying(false);
-      return;
     }
-    
-    // Vérification d'erreurs spécifiques dans le résultat
-    if (result.type === 'error' && result.errors) {
-      // Si des erreurs spécifiques sont retournées, les afficher
-      const errorMessages = Object.values(result.errors)
-        .flat()
-        .join(', ');
-      toast.error(`Erreur: ${errorMessages}`);
-      return;
-    }
-    
-    if (result.type === 'pending' && result.data?.pendingChangeId) {
-      // Si un OTP est nécessaire pour la suppression
-      setPendingChangeId(result.data.pendingChangeId);
-      setShowOtpVerification(true);
-      toast.info(result.message || "Un code OTP a été envoyé à l'administrateur pour confirmer la suppression");
-    } else if (result.type === 'success') {
-      // Si la suppression est réussie sans besoin d'OTP
-      toast.success("Le client a été supprimé avec succès!");
-      onClose();
-      router.refresh();
-    } else {
-      // Pour tout autre type d'erreur non spécifique
-      toast.error(result.message || "Erreur lors de la suppression");
-    }
-  } catch (error) {
-    console.error("Error during delete:", error);
-    toast.error("Une erreur est survenue lors de la suppression");
-  } finally {
-    setIsVerifying(false);
-  }
-};
+  };
   
-  // Gérer la suppression du client d'un service
+  // Handle agent deletion
+  const handleDeleteAgent = async () => {
+    setIsDeleting(false); // Close confirmation dialog
+    
+    if (!agent || !onDelete) return;
+    
+    try {
+      setIsVerifying(true);
+      setOperationType('delete');
+      
+      // Prepare data for deletion
+      const deleteData = {
+        agentId: agent._id,
+        entrepriseId: entrepriseId
+      };
+      
+      const result = await onDelete(deleteData);
+      
+      console.log("Deletion result:", result);
+      
+      if (!result) {
+        toast.error("Error during deletion");
+        setIsVerifying(false);
+        return;
+      }
+      
+      // Check for specific errors in the result
+      if (result.type === 'error' && result.errors) {
+        // If specific errors are returned, display them
+        const errorMessages = Object.values(result.errors)
+          .flat()
+          .join(', ');
+        toast.error(`Error: ${errorMessages}`);
+        return;
+      }
+      
+      if (result.type === 'pending' && result.data?.pendingChangeId) {
+        // If OTP is needed for deletion
+        setPendingChangeId(result.data.pendingChangeId);
+        setShowOtpVerification(true);
+        toast.info(result.message || "An OTP code has been sent to the administrator to confirm deletion");
+      } else if (result.type === 'success') {
+        // If deletion is successful without OTP
+        toast.success("The agent has been deleted successfully!");
+        onClose();
+        router.refresh();
+      } else {
+        // For any other non-specific error
+        toast.error(result.message || "Error during deletion");
+      }
+    } catch (error) {
+      console.error("Error during delete:", error);
+      toast.error("An error occurred during deletion");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+  
+  // Handle removing agent from a service
   const handleRemoveFromService = async (serviceId: string) => {
-    setIsRemovingFromService(false); // Ferme la boîte de dialogue de confirmation
+    setIsRemovingFromService(false); // Close confirmation dialog
     
     if (!agent || !onRemoveFromService) return;
     
@@ -296,125 +386,150 @@ const handleDeleteClient = async () => {
       setOperationType('removeFromService');
       setSelectedServiceId(serviceId);
       
-      // Préparer les données pour la suppression du service
+      // Prepare data for service removal
       const removeData = {
-        clientId: agent._id,
+        agentId: agent._id,
         serviceId: serviceId,
         entrepriseId: entrepriseId
       };
       
       const result = await onRemoveFromService(removeData);
       
-      console.log("Résultat de suppression du service:", result);
+      console.log("Service removal result:", result);
       
       if (!result) {
-        toast.error("Erreur lors de la suppression du service");
+        toast.error("Error during service removal");
         setIsVerifying(false);
         return;
       }
       
       if (result.type === 'pending' && result.data?.pendingChangeId) {
-        // Si un OTP est nécessaire pour la suppression du service
+        // If OTP is needed for service removal
         setPendingChangeId(result.data.pendingChangeId);
         setShowOtpVerification(true);
-        toast.info(result.message || "Un code OTP a été envoyé à l'administrateur pour confirmer la suppression du service");
+        toast.info(result.message || "An OTP code has been sent to the administrator to confirm service removal");
       } else if (result.type === 'success') {
-        // Si la suppression est réussie sans besoin d'OTP
-        toast.success("Le client a été retiré du service avec succès!");
+        // If removal is successful without OTP
+        toast.success("The agent has been removed from the service successfully!");
         onClose();
         router.refresh();
       } else {
-        toast.error(result.message || "Erreur lors de la suppression du service");
+        toast.error(result.message || "Error during service removal");
       }
     } catch (error) {
       console.error("Error during service removal:", error);
-      toast.error("Une erreur est survenue lors de la suppression du service");
+      toast.error("An error occurred during service removal");
     } finally {
       setIsVerifying(false);
     }
   };
   
-  // Gérer la vérification OTP
+  // Handle OTP verification
   const handleOtpVerification = async () => {
     if (!pendingChangeId) {
-      console.error("Aucun identifiant de changement en attente");
-      toast.error("Une erreur est survenue. Veuillez réessayer.");
+      console.error("No pending change identifier");
+      toast.error("An error occurred. Please try again.");
+      return;
+    }
+
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP code");
       return;
     }
 
     setIsVerifying(true);
     try {
-      // Préparer les données pour la vérification OTP
+      // Prepare data for OTP verification
       const otpData = {
         otp: otpCode,
-        code: otpCode, // Garder "code" également au cas où
+        code: otpCode,
         pendingChangeId: pendingChangeId,
         actionType: operationType,
-        serviceId: operationType === 'removeFromService' ? selectedServiceId : undefined
+        serviceId: ['removeFromService', 'addService'].includes(operationType) ? selectedServiceId : undefined,
+        niveauService: operationType === 'addService' ? selectedNiveauService : undefined,
+        entrepriseId: entrepriseId
       };
       
-      console.log("Vérification OTP avec:", otpData);
+      console.log("OTP verification with:", otpData);
       
-      // Appeler la fonction de vérification OTP
+      // Call OTP verification function
       const result = await verifyOtp(otpData);
       
-      // Vérifier si le résultat existe
+      // Check if result exists
       if (!result) {
-        console.error("Résultat de vérification OTP indéfini");
-        toast.error("Échec de la vérification OTP");
+        console.error("OTP verification result undefined");
+        toast.error("OTP verification failed");
         return;
       }
       
-      console.log("Résultat de vérification OTP:", result);
+      console.log("OTP verification result:", result);
       
-      if (result.type === 'success' || result.status === 'success') {
+      // Check all possible success response formats
+      if (result.success || result.type === 'success' || result.status === 'success' || 
+          (result.data && (result.data.type === 'success' || result.data.status === 'success'))) {
         let successMessage = "";
         
         switch(operationType) {
           case 'update':
-            successMessage = "Le client a été mis à jour avec succès!";
+            successMessage = "The agent has been updated successfully!";
             break;
           case 'delete':
-            successMessage = "Le client a été supprimé avec succès!";
+            successMessage = "The agent has been deleted successfully!";
             break;
           case 'removeFromService':
-            successMessage = "Le client a été retiré du service avec succès!";
+            successMessage = "The agent has been removed from the service successfully!";
+            break;
+          case 'addService':
+            successMessage = "The service has been added to the agent successfully!";
             break;
           default:
-            successMessage = "Opération réussie!";
+            successMessage = "Operation successful!";
         }
         
         toast.success(successMessage);
         
-        // Fermer la boîte de dialogue et rafraîchir la page
+        // Close dialog and refresh page
         onClose();
         router.refresh();
       } else {
-        toast.error(result.message || "Échec de la vérification OTP");
+        // Error handling
+        const errorMsg = result.message || result.error || "OTP verification failed";
+        toast.error(errorMsg);
+        
+        // Display detailed errors if available
+        if (result.errors) {
+          Object.values(result.errors).forEach((errorArray: any) => {
+            if (Array.isArray(errorArray)) {
+              errorArray.forEach((error: string) => {
+                toast.error(error);
+              });
+            }
+          });
+        }
       }
     } catch (error) {
       console.error("Error verifying OTP:", error);
-      toast.error("Échec de la vérification. Veuillez réessayer.");
+      toast.error("Verification failed. Please try again.");
     } finally {
       setIsVerifying(false);
     }
   };
 
-  // Gérer l'affichage des détails de paiement
+  // Handle showing payment details
   const handleShowPaymentDetails = (payment: Paiement) => {
     setSelectedPayment(payment);
     setShowPaymentDetails(true);
     setShowTransferDetails(false);
   };
 
-  // Gérer l'affichage des détails de virement
+  // Handle showing transfer details
   const handleShowTransferDetails = (transfer: VirementRecu) => {
     setSelectedTransfer(transfer);
     setShowTransferDetails(true);
     setShowPaymentDetails(false);
   };
 
-  // Fonctions pour afficher les boîtes de dialogue de confirmation
+  // Functions to display confirmation dialogs
   const showDeleteConfirmation = () => {
     setIsDeleting(true);
   };
@@ -424,7 +539,17 @@ const handleDeleteClient = async () => {
     setIsRemovingFromService(true);
   };
 
-  // Formater la date
+  // Function to activate service addition mode
+  const toggleAddServiceMode = () => {
+    setIsAddingService(!isAddingService);
+    if (!isAddingService) {
+      setSelectedServiceId('');
+      setSelectedNiveauService('');
+      setSelectedServiceNiveaux([]);
+    }
+  };
+
+  // Format date
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -435,11 +560,11 @@ const handleDeleteClient = async () => {
         minute: '2-digit'
       });
     } catch (error) {
-      return "Date invalide";
+      return "Invalid date";
     }
   };
 
-  // Obtenir la classe CSS en fonction du statut du paiement
+  // Get CSS class based on payment status
   const getStatusBadgeVariant = (status: string) => {
     if (!status) return "default";
     
@@ -449,7 +574,7 @@ const handleDeleteClient = async () => {
     return "default";
   };
 
-  // Vérifie si un virement est valide (a des données significatives)
+  // Check if a transfer is valid (has significant data)
   const isValidTransfer = (transfer: VirementRecu) => {
     return transfer && (
       transfer.montant !== undefined || 
@@ -459,7 +584,7 @@ const handleDeleteClient = async () => {
     );
   };
 
-  // Pour afficher les détails du virement
+  // To display transfer details
   const renderTransferDetails = (transfer: VirementRecu) => {
     if (!transfer) return null;
     
@@ -468,7 +593,7 @@ const handleDeleteClient = async () => {
         {transfer.montant !== undefined && (
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-gray-500" />
-            <div className="font-semibold">Montant:</div>
+            <div className="font-semibold">Amount:</div>
             <div>{transfer.montant.toLocaleString('fr-FR')} FCFA</div>
           </div>
         )}
@@ -484,7 +609,7 @@ const handleDeleteClient = async () => {
         {transfer.statut && (
           <div className="flex items-center gap-2">
             <Tag className="h-5 w-5 text-gray-500" />
-            <div className="font-semibold">Statut:</div>
+            <div className="font-semibold">Status:</div>
             <Badge variant={getStatusBadgeVariant(transfer.statut)}>
               {transfer.statut}
             </Badge>
@@ -494,7 +619,7 @@ const handleDeleteClient = async () => {
         {transfer.expediteur && (
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-gray-500" />
-            <div className="font-semibold">Expéditeur:</div>
+            <div className="font-semibold">Sender:</div>
             <div>
               {transfer.expediteur.nom} {transfer.expediteur.prenom}
             </div>
@@ -503,7 +628,7 @@ const handleDeleteClient = async () => {
         
         {transfer.paiementId && (
           <div className="flex items-center gap-2">
-            <div className="font-semibold">ID Paiement:</div>
+            <div className="font-semibold">Payment ID:</div>
             <div className="text-xs text-gray-500 truncate max-w-[200px]">
               {transfer.paiementId}
             </div>
@@ -522,14 +647,13 @@ const handleDeleteClient = async () => {
     );
   };
 
-  // Filtrer les virements valides (avec des données)
+  // Filter valid transfers (with data)
   const getValidTransfers = () => {
     if (!agent?.virementsRecus || agent.virementsRecus.length === 0) return [];
     return agent.virementsRecus.filter(isValidTransfer);
   };
 
-  // Compter les items dans les onglets
-  const paymentsCount = agent?.paiementsEffectues?.length || 0;
+  // Count items in tabs
   const transfersCount = getValidTransfers().length;
 
   if (!agent) return null;
@@ -540,20 +664,20 @@ const handleDeleteClient = async () => {
         if (!open && !isVerifying) onClose();
       }}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          {/* Affichage des détails de paiement */}
+          {/* Payment details display */}
           {showPaymentDetails && selectedPayment ? (
             <>
               <DialogHeader>
-                <DialogTitle>Détails du paiement</DialogTitle>
+                <DialogTitle>Payment Details</DialogTitle>
                 <DialogDescription>
-                  Informations sur le paiement effectué
+                  Information about the payment made
                 </DialogDescription>
               </DialogHeader>
               
               <div className="grid gap-4 py-4">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-gray-500" />
-                  <div className="font-semibold">Montant:</div>
+                  <div className="font-semibold">Amount:</div>
                   <div>{selectedPayment.montant.toLocaleString('fr-FR')} FCFA</div>
                 </div>
                 
@@ -565,7 +689,7 @@ const handleDeleteClient = async () => {
                 
                 <div className="flex items-center gap-2">
                   <Tag className="h-5 w-5 text-gray-500" />
-                  <div className="font-semibold">Statut:</div>
+                  <div className="font-semibold">Status:</div>
                   <Badge variant={getStatusBadgeVariant(selectedPayment.statut)}>
                     {selectedPayment.statut}
                   </Badge>
@@ -574,7 +698,7 @@ const handleDeleteClient = async () => {
                 {selectedPayment.expediteur && (
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-gray-500" />
-                    <div className="font-semibold">Expéditeur:</div>
+                    <div className="font-semibold">Sender:</div>
                     <div>
                       {selectedPayment.expediteur.nom} {selectedPayment.expediteur.prenom}
                     </div>
@@ -583,7 +707,7 @@ const handleDeleteClient = async () => {
                 
                 {selectedPayment.paiementId && (
                   <div className="flex items-center gap-2">
-                    <div className="font-semibold">ID Paiement:</div>
+                    <div className="font-semibold">Payment ID:</div>
                     <div className="text-xs text-gray-500 truncate max-w-[200px]">
                       {selectedPayment.paiementId}
                     </div>
@@ -593,16 +717,16 @@ const handleDeleteClient = async () => {
               
               <div className="flex justify-end mt-4">
                 <Button onClick={() => setShowPaymentDetails(false)}>
-                  Retour
+                  Back
                 </Button>
               </div>
             </>
           ) : showTransferDetails && selectedTransfer ? (
             <>
               <DialogHeader>
-                <DialogTitle>Détails du virement</DialogTitle>
+                <DialogTitle>Transfer Details</DialogTitle>
                 <DialogDescription>
-                  Informations sur le virement reçu
+                  Information about the transfer received
                 </DialogDescription>
               </DialogHeader>
               
@@ -610,7 +734,7 @@ const handleDeleteClient = async () => {
               
               <div className="flex justify-end mt-4">
                 <Button onClick={() => setShowTransferDetails(false)}>
-                  Retour
+                  Back
                 </Button>
               </div>
             </>
@@ -619,27 +743,27 @@ const handleDeleteClient = async () => {
               <OtpInput
                 length={6}
                 onComplete={(code) => {
-                  // Mettre à jour uniquement le code OTP sans appeler automatiquement handleOtpVerification
                   setOtpCode(code);
                 }}
-                // Ajouter cette propriété pour séparer la soumission de la complétion
                 onSubmit={handleOtpVerification}
                 disabled={isVerifying}
                 isLoading={isVerifying}
                 title={(() => {
                   switch(operationType) {
-                    case 'update': return "Vérification OTP - Modification";
-                    case 'delete': return "Vérification OTP - Suppression";
-                    case 'removeFromService': return "Vérification OTP - Retrait du service";
-                    default: return "Vérification OTP";
+                    case 'update': return "OTP Verification - Modification";
+                    case 'delete': return "OTP Verification - Deletion";
+                    case 'removeFromService': return "OTP Verification - Service Removal";
+                    case 'addService': return "OTP Verification - Service Addition";
+                    default: return "OTP Verification";
                   }
                 })()}
                 description={(() => {
                   switch(operationType) {
-                    case 'update': return "Un code OTP a été envoyé pour confirmer la modification du client.";
-                    case 'delete': return "Un code OTP a été envoyé pour confirmer la suppression définitive.";
-                    case 'removeFromService': return "Un code OTP a été envoyé pour confirmer le retrait du service.";
-                    default: return "Un code de vérification à 6 chiffres a été envoyé à l'administrateur.";
+                    case 'update': return "An OTP code has been sent to confirm agent modification.";
+                    case 'delete': return "An OTP code has been sent to confirm permanent deletion.";
+                    case 'removeFromService': return "An OTP code has been sent to confirm service removal.";
+                    case 'addService': return "An OTP code has been sent to confirm service addition.";
+                    default: return "A 6-digit verification code has been sent to the administrator.";
                   }
                 })()}
               />
@@ -647,25 +771,26 @@ const handleDeleteClient = async () => {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Détails du Gerant</DialogTitle>
+                <DialogTitle>Agent Details</DialogTitle>
                 <DialogDescription>
                   {agent.nom} {agent.prenom}
                 </DialogDescription>
               </DialogHeader>
               
-              <Tabs defaultValue="profile" 
-  className="w-full" 
-  value={activeTab} 
-  onValueChange={(value) => {
-    // Only allow tab changes if not in editing mode
-    if (!isEditing) {
-      setActiveTab(value);
-    }
-  }}>
+              <Tabs 
+                defaultValue="profile" 
+                className="w-full" 
+                value={activeTab} 
+                onValueChange={(value) => {
+                  if (!isEditing) {
+                    setActiveTab(value);
+                  }
+                }}
+              >
                 <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="profile">Profil</TabsTrigger>
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="transfers" className="relative">
-                    Virements
+                    Transfers
                     {transfersCount > 0 && (
                       <Badge variant="secondary" className="ml-1 h-5 px-1">{transfersCount}</Badge>
                     )}
@@ -675,7 +800,7 @@ const handleDeleteClient = async () => {
                 <TabsContent value="profile" className="mt-0">
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">Nom:</div>
+                      <div className="font-semibold text-right">Last Name:</div>
                       <div className="col-span-3">
                         {isEditing ? (
                           <Input
@@ -690,7 +815,7 @@ const handleDeleteClient = async () => {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">Prénom:</div>
+                      <div className="font-semibold text-right">First Name:</div>
                       <div className="col-span-3">
                         {isEditing ? (
                           <Input
@@ -720,7 +845,7 @@ const handleDeleteClient = async () => {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">Téléphone:</div>
+                      <div className="font-semibold text-right">Phone:</div>
                       <div className="col-span-3">
                         {isEditing ? (
                           <Input
@@ -735,7 +860,7 @@ const handleDeleteClient = async () => {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">Adresse:</div>
+                      <div className="font-semibold text-right">Address:</div>
                       <div className="col-span-3">
                         {isEditing ? (
                           <Input
@@ -750,7 +875,6 @@ const handleDeleteClient = async () => {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">NIN:</div>
                       <div className="col-span-3">
                         {isEditing ? (
                           <Input
@@ -765,17 +889,17 @@ const handleDeleteClient = async () => {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="font-semibold text-right">Statut:</div>
+                      <div className="font-semibold text-right">Status:</div>
                       <div className="col-span-3">
                         <Badge variant={agent.estNouveau ? "default" : "secondary"}>
-                          {agent.estNouveau ? "Nouveau client" : "Client existant"}
+                          {agent.estNouveau ? "New agent" : "Existing agent"}
                         </Badge>
                       </div>
                     </div>
 
                     {agent.dateCreation && (
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <div className="font-semibold text-right">Date de création:</div>
+                        <div className="font-semibold text-right">Creation date:</div>
                         <div className="col-span-3">
                           {new Date(agent.dateCreation).toLocaleDateString('fr-FR')}
                         </div>
@@ -785,9 +909,9 @@ const handleDeleteClient = async () => {
                     <div className="grid grid-cols-4 items-start gap-4">
                       <div className="font-semibold text-right">Services:</div>
                       <div className="col-span-3">
-                        {agent.servicesChoisis && agent.servicesChoisis.length > 0 ? (
+                        {agent.servicesAffecte && agent.servicesAffecte.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
-                            {agent.servicesChoisis.map((service, index) => (
+                            {agent.servicesAffecte.map((service, index) => (
                               <div key={index} className="flex items-center gap-1 mb-1">
                                 <Badge variant="secondary">
                                   {service.nomService}
@@ -800,25 +924,108 @@ const handleDeleteClient = async () => {
                                     onClick={() => showRemoveFromServiceConfirmation(service._id)}
                                   >
                                     <X className="h-3 w-3 mr-1" />
-                                    Retirer
+                                    Remove
                                   </Button>
                                 )}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-gray-500">Aucun service choisi</span>
+                          <span className="text-gray-500">No services selected</span>
+                        )}
+                        
+                        {/* Service addition button */}
+                        {onAddService && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={toggleAddServiceMode}
+                          >
+                            {isAddingService ? (
+                              <>Cancel</>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add a service
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
+                        {/* Service addition form */}
+                        {isAddingService && (
+                          <div className="mt-4 p-3 border rounded-md bg-gray-50">
+                            <h4 className="font-medium mb-2">Add a service</h4>
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor="service-select">Service</Label>
+                                <select
+                                  id="service-select"
+                                  className="w-full border border-gray-300 rounded-md p-2 mt-1"
+                                  value={selectedServiceId}
+                                  onChange={handleServiceChange}
+                                >
+                                  <option value="">Select a service</option>
+                                  {Array.isArray(services) && services.length > 0 ? (
+                                    services
+                                      // Filter out already selected services
+                                      .filter(service => 
+                                        !agent.servicesAffecte?.some(agentService => 
+                                          agentService._id === service._id
+                                        )
+                                      )
+                                      .map(service => (
+                                        <option key={service._id} value={service._id}>
+                                          {service.nomService}
+                                        </option>
+                                      ))
+                                  ) : (
+                                    <option value="" disabled>No services available</option>
+                                  )}
+                                </select>
+                              </div>
+                              
+                              {selectedServiceId && selectedServiceNiveaux.length > 0 && (
+                                <div>
+                                  <Label htmlFor="niveau-select">Service level</Label>
+                                  <select
+                                    id="niveau-select"
+                                    className="w-full border border-gray-300 rounded-md p-2 mt-1"
+                                    value={selectedNiveauService}
+                                    onChange={handleNiveauServiceChange}
+                                  >
+                                    <option value="">Select a level</option>
+                                    {selectedServiceNiveaux.map((niveau, index) => (
+                                      <option key={niveau._id || index} value={niveau.nom}>
+                                        {niveau.nom} - {niveau.tarif} FCFA
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                              
+                              <div className="flex justify-end mt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleAddService}
+                                  disabled={!selectedServiceId || !selectedNiveauService}
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </TabsContent>
-
-               
                 
                 <TabsContent value="transfers" className="mt-0">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Virements reçus</h3>
+                    <h3 className="text-lg font-semibold">Received transfers</h3>
                     {getValidTransfers().length > 0 ? (
                       <div className="space-y-2">
                         {getValidTransfers().map((virement, index) => (
@@ -827,17 +1034,16 @@ const handleDeleteClient = async () => {
                             className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleShowTransferDetails(virement)}
                           >
-                            <ArrowDown className={`h-4 w-4 ${virement.statut?.includes('échoué') ? 'text-red-500' : 'text-green-500'}`} />
                             <div className="flex-1">
                               <div className="font-medium">
                                 {virement.montant !== undefined 
                                   ? `${virement.montant.toLocaleString('fr-FR')} FCFA` 
-                                  : 'Montant non disponible'}
+                                  : 'Amount not available'}
                               </div>
                               <div className="text-xs text-gray-500">
                                 {virement.datePaiement 
                                   ? formatDate(virement.datePaiement) 
-                                  : (virement.expediteur?.nom ? `De: ${virement.expediteur.nom}` : 'Détails non disponibles')}
+                                  : (virement.expediteur?.nom ? `From: ${virement.expediteur.nom}` : 'Details not available')}
                               </div>
                             </div>
                             {virement.statut && (
@@ -850,7 +1056,7 @@ const handleDeleteClient = async () => {
                       </div>
                     ) : (
                       <div className="p-4 text-center text-gray-500 border border-dashed rounded-md">
-                        Aucun virement reçu
+                        No transfers received
                       </div>
                     )}
                   </div>
@@ -865,7 +1071,7 @@ const handleDeleteClient = async () => {
                     onClick={showDeleteConfirmation}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
+                    Delete
                   </Button>
                 )}
                 
@@ -873,16 +1079,16 @@ const handleDeleteClient = async () => {
                   {isEditing ? (
                     <>
                       <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Annuler
+                        Cancel
                       </Button>
                       <Button onClick={handleUpdate} disabled={isVerifying}>
-                        {isVerifying ? "Enregistrement..." : "Enregistrer"}
+                        {isVerifying ? "Saving..." : "Save"}
                       </Button>
                     </>
                   ) : (
                     <Button onClick={() => setIsEditing(true)}>
                       <Edit className="h-4 w-4 mr-2" />
-                      Modifier
+                      Edit
                     </Button>
                   )}
                 </div>
@@ -892,49 +1098,49 @@ const handleDeleteClient = async () => {
         </DialogContent>
       </Dialog>
 
-      {/* Boîte de dialogue de confirmation pour la suppression définitive */}
+      {/* Confirmation dialog for permanent deletion */}
       <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Cela supprimera définitivement le client
-              et toutes ses données associées.
+              This action is irreversible. It will permanently delete the agent
+              and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsDeleting(false)}>
-              Annuler
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteClient}
+              onClick={handleDeleteAgent}
               className="bg-red-500 hover:bg-red-600"
             >
-              Supprimer définitivement
+              Delete permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Boîte de dialogue de confirmation pour le retrait d'un service */}
+      {/* Confirmation dialog for service removal */}
       <AlertDialog open={isRemovingFromService} onOpenChange={setIsRemovingFromService}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Retirer du service</AlertDialogTitle>
+            <AlertDialogTitle>Remove from service</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir retirer ce client du service sélectionné ?
-              Cette action nécessitera une vérification OTP.
+              Are you sure you want to remove this agent from the selected service?
+              This action will require OTP verification.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsRemovingFromService(false)}>
-              Annuler
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleRemoveFromService(selectedServiceId)}
               className="bg-orange-500 hover:bg-orange-600"
             >
-              Retirer du service
+              Remove from service
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -99,12 +99,12 @@ const AgentsList = ({ agents, onAgentClick }) => {
           <div className="flex flex-wrap gap-1">
             {agent.servicesAffecte.map((service, index) => (
               <Badge key={index} variant="secondary" className="bg-gray-100">
-                {service.nomService || "Hello Word"}
+                {service.nomService}
               </Badge>
             ))}
           </div>
         ) : (
-          <span className="text-sm text-gray-500">Hello Word</span>
+          <span className="text-sm text-gray-500"></span>
         )
       )
     },

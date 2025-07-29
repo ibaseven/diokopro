@@ -8,6 +8,7 @@ import PhoneInput from "../../clientsPage/_components/phone";
 import OtpInput from "../../entreprise/_components/_Agent/OtpInput";
 import { Button } from "@/components/ui/button";
 
+import * as Select from "@radix-ui/react-select";
 interface Service {
   _id: string;
   nomService: string;
@@ -42,20 +43,21 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
     frequencePaiement: "",
     intervallePaiement: "",
     jourPaiement: "",
+    wallet: "",
     aPayer: "",
     dateProgrammee: ""
   });
-  
+
   // Log pour déboguer l'état des services
   useEffect(() => {
     console.log("Services disponibles:", services);
-    
+
     // Vérifier si un service existe mais que l'entrepriseId est manquante
     const servicesMissingEntrepriseId = services.filter(service => !service.entrepriseId);
     if (servicesMissingEntrepriseId.length > 0) {
       console.warn("Services sans entrepriseId:", servicesMissingEntrepriseId);
     }
-    
+
     // Si formData n'a pas d'entrepriseId, essayez d'en définir une par défaut
     if (!formData.entrepriseId && services.length > 0) {
       const defaultEntrepriseId = getDefaultEntrepriseId();
@@ -89,16 +91,19 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ 
-      ...prev, 
-      [name]: name === "salaire" || name === "intervallePaiement" || name === "jourPaiement" 
-        ? Number(value) 
-        : value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "salaire" || name === "intervallePaiement" || name === "jourPaiement"
+        ? Number(value)
+        : value
     }));
     // Effacer l'erreur du champ modifié
     setErrors((prev) => ({ ...prev, [name]: [] }));
   };
-
+const handleWalletChange = (value) => {
+  setFormData(prev => ({ ...prev, wallet: value }));
+  setErrors(prev => ({ ...prev, wallet: [] }));
+};
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: checked }));
@@ -129,6 +134,7 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
       nomService: "",
       entrepriseId: entrepriseId,
       salaire: "",
+      wallet: "", 
       frequencePaiement: "mensuel",
       intervallePaiement: 1,
       jourPaiement: 1,
@@ -137,7 +143,11 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
     });
     setErrors({});
   };
-
+  const walletOptions = [ 
+    { value: 'orange-money-senegal', label: 'Orange Money Sénégal' }, 
+    { value: 'free-money-senegal', label: 'Free Money Sénégal' }, 
+    { value: 'wave-senegal', label: 'Wave Sénégal' }, 
+  ]
   const handleSubmit = async () => {
     setErrors({});
     const newErrors: ValidationErrors = {};
@@ -148,17 +158,17 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
       newErrors.serviceId = ["Le service est requis"];
       hasErrors = true;
     }
-    
+
     if (!formData.nom || formData.nom.trim() === "") {
       newErrors.nom = ["Le nom est requis"];
       hasErrors = true;
     }
-    
+
     if (!formData.prenom || formData.prenom.trim() === "") {
       newErrors.prenom = ["Le prénom est requis"];
       hasErrors = true;
     }
-    
+
     if (!formData.email || formData.email.trim() === "") {
       newErrors.email = ["L'email est requis"];
       hasErrors = true;
@@ -166,18 +176,21 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
       newErrors.email = ["Format d'email invalide"];
       hasErrors = true;
     }
-    
+
     if (!formData.telephone || formData.telephone.trim() === "") {
       newErrors.telephone = ["Le téléphone est requis"];
       hasErrors = true;
     }
-    
+
     if (!formData.adresse || formData.adresse.trim() === "") {
       newErrors.adresse = ["L'adresse est requise"];
       hasErrors = true;
     }
-    
-  
+if (!formData.wallet || formData.wallet.trim() === "") {
+  newErrors.wallet = ["Le portefeuille est requis"];
+  hasErrors = true;
+}
+
 
     // Validation spécifique à la fréquence
     switch (formData.frequencePaiement) {
@@ -211,14 +224,14 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
     if (!formData.entrepriseId && formData.serviceId) {
       console.log("Service sélectionné mais entrepriseId manquant, tentative d'utiliser l'entrepriseId par défaut");
       const defaultEntrepriseId = getDefaultEntrepriseId();
-      
+
       if (defaultEntrepriseId) {
         // Mettre à jour le formData avec l'entrepriseId par défaut
         setFormData(prev => ({
           ...prev,
           entrepriseId: defaultEntrepriseId
         }));
-        
+
         console.log("EntrepriseId par défaut utilisée:", defaultEntrepriseId);
       } else {
         console.error("Aucune entrepriseId par défaut disponible");
@@ -293,13 +306,13 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
       // Vérification OTP avec le pendingChangeId et l'entrepriseId
       const response = await validateOTP(pendingChangeId, otpCode, formData.entrepriseId);
       console.log("Réponse API validation OTP:", response);
-      
+
       if (response.success) {
         toast.success("Agent validé avec succès !");
         resetModal();
       } else {
         toast.error(response.error || "Code OTP invalide ou expiré");
-        
+
         // Si des erreurs de validation sont présentes, les afficher
         if (response.errors) {
           Object.values(response.errors).forEach((errorArray: any) => {
@@ -327,23 +340,23 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
 
     if (selectedService) {
       console.log("Service sélectionné:", selectedService);
-      
+
       // Utilisez l'entrepriseId du service s'il existe, sinon utilisez celui passé en prop
       const serviceEntrepriseId = selectedService.entrepriseId || entrepriseId;
-      
+
       if (!serviceEntrepriseId) {
         console.warn("Attention: Aucun entrepriseId disponible");
         toast.warning("Impossible de déterminer l'entreprise. Veuillez sélectionner un autre service.");
         return;
       }
-      
+
       setFormData({
         ...formData,
         serviceId: selectedService._id,
         nomService: selectedService.nomService,
         entrepriseId: serviceEntrepriseId,
       });
-      
+
       setErrors((prev) => ({ ...prev, serviceId: [] }));
     } else {
       // Garder l'entrepriseId existant même si le service est réinitialisé
@@ -505,6 +518,43 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
                     <span className="text-xs text-gray-500 mt-1">Ce champ est obligatoire</span>
                   )}
                 </div>
+                 <div>
+  <label className="block mb-1 font-medium text-gray-700">
+    Portefeuille mobile <span className="text-red-500">*</span>
+  </label>
+  <Select.Root value={formData.wallet} onValueChange={handleWalletChange}>
+    <Select.Trigger className={`w-full border ${errors.wallet ? 'border-red-500' : 'border-gray-300'} rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between`}>
+      <Select.Value placeholder="Sélectionnez un portefeuille" />
+      <Select.Icon className="ml-2">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4.18179 6.18181C4.35753 6.00608 4.64245 6.00608 4.81819 6.18181L7.49999 8.86362L10.1818 6.18181C10.3575 6.00608 10.6424 6.00608 10.8182 6.18181C10.9939 6.35755 10.9939 6.64247 10.8182 6.81821L7.81819 9.81821C7.73379 9.9026 7.61933 9.95001 7.49999 9.95001C7.38064 9.95001 7.26618 9.9026 7.18179 9.81821L4.18179 6.81821C4.00605 6.64247 4.00605 6.35755 4.18179 6.18181Z" fill="currentColor"/>
+        </svg>
+      </Select.Icon>
+    </Select.Trigger>
+    
+    <Select.Portal>
+      <Select.Content className="bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto z-50">
+        <Select.Viewport className="p-1">
+          {walletOptions.map((option) => (
+            <Select.Item 
+              key={option.value} 
+              value={option.value}
+              className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded-sm outline-none data-[highlighted]:bg-gray-100"
+            >
+              <Select.ItemText>{option.label}</Select.ItemText>
+            </Select.Item>
+          ))}
+        </Select.Viewport>
+      </Select.Content>
+    </Select.Portal>
+  </Select.Root>
+  
+  {errors.wallet?.length > 0 ? (
+    <span className="text-red-500 text-sm mt-1">{errors.wallet[0]}</span>
+  ) : (
+    <span className="text-xs text-gray-500 mt-1">Ce champ est obligatoire</span>
+  )}
+</div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -560,13 +610,27 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
                       required
                     />
                   </div>
+
                   {errors.email?.length > 0 ? (
                     <span className="text-red-500 text-sm mt-1">{errors.email[0]}</span>
                   ) : (
                     <span className="text-xs text-gray-500 mt-1">Ce champ est obligatoire</span>
                   )}
                 </div>
+                <label className="block mb-1 font-medium text-gray-700">Salaire <span className="text-red-500">*</span></label>
+                <div className={`flex items-center border ${errors.salaire ? 'border-red-500' : 'border-gray-300'
+                  } rounded-md p-2`}>
 
+                  <input
+                    type="number"
+                    name="salaire"
+                    value={formData.salaire}
+                    onChange={handleChange}
+                    placeholder="exemple@domaine.com"
+                    className="flex-1 outline-none"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block mb-1 font-medium text-gray-700">Téléphone <span className="text-red-500">*</span></label>
                   <PhoneInput
@@ -627,8 +691,8 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
                   </h3>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                 
-                    
+
+
                     <div>
                       <label className="block mb-1 font-medium text-gray-700">Fréquence de paiement</label>
                       <select
@@ -646,23 +710,23 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
                       </select>
                       {getFieldError('frequencePaiement')}
                     </div>
-                     <div>
-                                          <label className="block mb-1 font-medium text-gray-700">Date programmée</label>
-                                          <div className="flex items-center border border-gray-300 rounded-md p-2">
-                                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                                            <input
-                                              type="datetime-local"
-                                              name="dateProgrammee"
-                                              value={formData.dateProgrammee}
-                                              onChange={handleChange}
-                                              className="flex-1 outline-none"
-                                            />
-                                          </div>
-                                          {getFieldError('dateProgrammee')}
-                                          <span className="text-xs text-gray-500 mt-1">Date et heure prévues (optionnel)</span>
-                                        </div>
+                    <div>
+                      <label className="block mb-1 font-medium text-gray-700">Date programmée</label>
+                      <div className="flex items-center border border-gray-300 rounded-md p-2 bg-gray-100">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                        <input
+                          type="datetime-local"
+                          name="dateProgrammee"
+                          value={new Date().toISOString().slice(0, 16)} // Date actuelle au format datetime-local
+                          readOnly // Empêche la modification
+                          className="flex-1 outline-none bg-transparent cursor-not-allowed"
+                        />
+                      </div>
+                      {getFieldError('dateProgrammee')}
+                      <span className="text-xs text-gray-500 mt-1">Date et heure actuelles (non modifiable)</span>
+                    </div>
                   </div>
-                        
+
                   {/* Champs conditionnels basés sur la fréquence de paiement */}
                   {renderFrequencyFields()}
 

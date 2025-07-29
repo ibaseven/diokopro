@@ -21,8 +21,10 @@ const AgentSchema = z.object({
   serviceId: z.string().min(1, { message: "L'ID du service est obligatoire" }),
   telephone: z.string().min(9, { message: "Le numéro de téléphone doit contenir au moins 10 chiffres" }),
   adresse: z.string().min(1, { message: "L'adresse est obligatoire" }),
+  salaire: z.number(),
   nin: z.string().optional(),
    niveauxDisponibles: z.array(NiveauSchema).optional(),
+   wallet: z.string().min(1, { message: "Le portefeuille est obligatoire" }),
   // Nouveaux champs pour les paiements
   frequencePaiement: z.enum(['mensuel', 'hebdomadaire', 'quotidien', 'horaire', 'minute', 'unique']).optional().default('mensuel'),
   intervallePaiement: z.number().optional(),

@@ -35,7 +35,7 @@ const ClientsDetailsPage = async ({ params }: Props) => {
     const response = await fetchJSON(
       `${GET_CLIENT_BY_ID}/entreprise/${entrepriseId}/client/${clientId}`
     );
-console.log(response);
+//console.log(response);
 
     return (
       <div className="p-6">

@@ -3,8 +3,10 @@ export const MEDIA_URL = process.env.PROVIDER_AND_MEDIA_URL
 export const API_FILE = process.env.API_FILE
 
 // Auth endpoints
+export const BASE_URL =`${API_URL}`
 export const LOGIN_URL = `${API_URL}/auth/signIn`
 export const AUTH_URL = `${API_URL}/verify-token`
+export const VERIFY_OTP_URL = `${API_URL}/verifyOTP`
 export const GERANT_URL= `${API_URL}/createGerant/entreprise`;
 export const UPDATE_GERANT_URL= `${API_URL}/updateGerant/entreprise`;
 export const UPDATE_AGENT_URL= `${API_URL}/updateAgent/entreprise`;

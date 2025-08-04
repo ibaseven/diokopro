@@ -14,7 +14,7 @@ const CombinedPage = async () => {
   const enterprises = await fetchJSON(ENTERPRISES_ENDPOINT);
 
   const nomEntreprise =enterprises[0].nomEntreprise
-console.log("++++++++++++++++=56787654",enterprises);
+//console.log("++++++++++++++++=56787654",enterprises);
 
   
   const currentEnterpriseId = enterprises[0]?._id; // Assuming you want the first enterprise
@@ -31,7 +31,7 @@ console.log("++++++++++++++++=56787654",enterprises);
   const clientsResponse = await fetchJSON(`${GET_ALL_CLIENT_URL}/${currentEnterpriseId}/clients`);
   
   const clients = clientsResponse.data || [];
-console.log(clients);
+//console.log(clients);
 
 
 
@@ -43,7 +43,7 @@ console.log(clients);
   const agentsResponse = await fetchJSON(`${GET_ALL_AGENTS}/${currentEnterpriseId}`);
   
   const agents = Array.isArray(agentsResponse) ? agentsResponse : agentsResponse.data || [];
-console.log(agents);
+//console.log(agents);
 
   const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS}/${currentEnterpriseId}`);
   

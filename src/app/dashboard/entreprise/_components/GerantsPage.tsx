@@ -20,7 +20,7 @@ const GerantsPage = async () => {
   
   // Fetch gerants for the enterprise
   const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS}/${currentEnterpriseId}`);
-  console.log("Gerants response:", gerantsResponse);
+  //console.log("Gerants response:", gerantsResponse);
   
   // Adapt this line according to your API response structure
   const gerants = Array.isArray(gerantsResponse) ? gerantsResponse : gerantsResponse.gerants || [];

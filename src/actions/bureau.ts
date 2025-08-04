@@ -26,7 +26,7 @@ export const login = async (state: any, formData: FormData) => {
       password,
     });
 
-    console.log("Login response:", res.data); // Debugging: Log the response
+   // console.log("Login response:", res.data); // Debugging: Log the response
 
     // Si la connexion réussit, retourner les données de l'utilisateur
     if (res.data && res.status === 200) {

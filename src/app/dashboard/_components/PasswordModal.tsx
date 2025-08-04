@@ -44,7 +44,7 @@ export function PasswordModal({ onSuccess, onCancel, userRole, enterpriseId }: P
         }
         
         const data = await fetchJSON(endpoint);
-        console.log("Données entreprises reçues:", data);
+       // console.log("Données entreprises reçues:", data);
         
         let enterpriseData = data;
         
@@ -64,7 +64,7 @@ export function PasswordModal({ onSuccess, onCancel, userRole, enterpriseId }: P
           
           if (admin && admin.email) {
             setAdminEmail(admin.email);
-            console.log("Email admin trouvé:", admin.email);
+            //console.log("Email admin trouvé:", admin.email);
           } else {
             console.error("Aucun administrateur trouvé dans les données");
             setError("Aucun administrateur trouvé pour cette entreprise");

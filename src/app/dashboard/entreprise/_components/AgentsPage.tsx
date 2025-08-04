@@ -12,7 +12,7 @@ const AgentsPage = async () => {
   const enterprises = await fetchJSON(ENTERPRISES_ENDPOINT);
   
   const currentEnterpriseId = enterprises[0]?._id; // Assuming you want the first enterprise
-  console.log("entrer",currentEnterpriseId);
+  //console.log("entrer",currentEnterpriseId);
   
   if (!currentEnterpriseId) {
     throw new Error("No enterprise found");
@@ -20,7 +20,7 @@ const AgentsPage = async () => {
   
 
   const agentsResponse = await fetchJSON(`${GET_ALL_AGENTS}/${currentEnterpriseId}`);
-  console.log(agentsResponse);
+  //(agentsResponse);
   
   // Adaptez cette ligne selon la structure de votre réponse API
   const agents = Array.isArray(agentsResponse) ? agentsResponse : agentsResponse.data || [];

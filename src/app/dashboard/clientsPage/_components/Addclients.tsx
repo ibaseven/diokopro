@@ -6,7 +6,6 @@ import { createClient } from "@/actions/clientreq";
 import PhoneInput from "./phone";
 import { validateOTP } from "@/actions/service";
 import { Button } from "@/components/ui/button";
-
 import OtpInput from "../../entreprise/_components/_Agent/OtpInput";
 
 interface NiveauService {
@@ -52,14 +51,14 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
     frequencePaiement: "mensuel",
     intervallePaiement: 1,
     jourPaiement: 1,
-    aPayer: true,
+    aFAirePayer: false, // ✅ Par défaut à true pour les clients (ils reçoivent des paiements)
     // Champ pour la date programmée
     dateProgrammee: ""
   });
   
   // Log pour déboguer l'état des services
   useEffect(() => {
-    console.log("Services disponibles:", services);
+    //console.log("Services disponibles:", services);
     
     // Vérifier si un service existe mais que l'entrepriseId est manquante
     const servicesMissingEntrepriseId = services.filter(service => !service.entrepriseId);
@@ -75,10 +74,10 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
           ...prev,
           entrepriseId: defaultEntrepriseId
         }));
-        console.log("EntrepriseId par défaut défini:", defaultEntrepriseId);
+        //console.log("EntrepriseId par défaut défini:", defaultEntrepriseId);
       }
     }
-  }, [services]);
+  }, [services, formData.entrepriseId]);
 
   // États pour la vérification OTP
   const [showOtpVerification, setShowOtpVerification] = useState(false);
@@ -103,16 +102,23 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
     setFormData((prev) => ({ 
       ...prev, 
       [name]: name === "salaire" || name === "intervallePaiement" || name === "jourPaiement" 
-        ? Number(value) 
+        ? (value === '' ? '' : Number(value))
         : value 
     }));
     // Effacer l'erreur du champ modifié
-    setErrors((prev) => ({ ...prev, [name]: [] }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: [] }));
+    }
   };
 
+  // ✅ Fonction corrigée pour gérer le checkbox aPayer
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
+    //console.log(`Checkbox ${name} changé:`, checked); // Debug
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: checked 
+    }));
   };
 
   const openModal = () => {
@@ -145,7 +151,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
       frequencePaiement: "mensuel",
       intervallePaiement: 1,
       jourPaiement: 1,
-      aPayer: true,
+      aFAirePayer: false, // ✅ Par défaut à true pour les clients
       // Réinitialiser la date programmée
       dateProgrammee: ""
     });
@@ -153,51 +159,39 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
     setErrors({});
   };
 
-  const handleSubmit = async () => {
-    setErrors({});
+  const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
     let hasErrors = false;
 
-    // Vérification de chaque champ obligatoire
-    if (!formData.serviceId) {
-      newErrors.serviceId = ["Le service est requis"];
-      hasErrors = true;
-    }
-    
-    if (!formData.niveauService) {
-      newErrors.niveauService = ["Le niveau de service est requis"];
-      hasErrors = true;
-    }
-    
-    if (!formData.nom || formData.nom.trim() === "") {
-      newErrors.nom = ["Le nom est requis"];
-      hasErrors = true;
-    }
-    
-    if (!formData.prenom || formData.prenom.trim() === "") {
-      newErrors.prenom = ["Le prénom est requis"];
-      hasErrors = true;
-    }
-    
-    if (!formData.email || formData.email.trim() === "") {
-      newErrors.email = ["L'email est requis"];
-      hasErrors = true;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    // Debug: Afficher l'état d'aPayer avant validation
+    //console.log("État aPayer lors de la validation:", formData.aFAirePayer);
+
+    // Validation des champs obligatoires
+    const requiredFields = [
+      { field: 'serviceId', message: 'Le service est requis' },
+      { field: 'niveauService', message: 'Le niveau de service est requis' },
+      { field: 'nom', message: 'Le nom est requis' },
+      { field: 'prenom', message: 'Le prénom est requis' },
+      { field: 'email', message: 'L\'email est requis' },
+      { field: 'telephone', message: 'Le téléphone est requis' },
+      { field: 'adresse', message: 'L\'adresse est requise' }
+    ];
+
+    requiredFields.forEach(({ field, message }) => {
+      const value = formData[field as keyof typeof formData];
+      if (!value || String(value).trim() === "") {
+        newErrors[field] = [message];
+        hasErrors = true;
+      }
+    });
+
+    // Validation format email
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = ["Format d'email invalide"];
       hasErrors = true;
     }
-    
-    if (!formData.telephone || formData.telephone.trim() === "") {
-      newErrors.telephone = ["Le téléphone est requis"];
-      hasErrors = true;
-    }
-    
-    if (!formData.adresse || formData.adresse.trim() === "") {
-      newErrors.adresse = ["L'adresse est requise"];
-      hasErrors = true;
-    }
 
-    // Validation spécifique à la fréquence
+    // Validation spécifique selon la fréquence de paiement
     switch (formData.frequencePaiement) {
       case 'mensuel':
         if (formData.jourPaiement < 1 || formData.jourPaiement > 31) {
@@ -225,19 +219,34 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
         break;
     }
 
-    // Si entrepriseId est vide et qu'un service est sélectionné, essayer d'utiliser une valeur par défaut
-    if (!formData.entrepriseId && formData.serviceId) {
-      console.log("Service sélectionné mais entrepriseId manquant, tentative d'utiliser l'entrepriseId par défaut");
+    if (hasErrors) {
+      setErrors(newErrors);
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    setErrors({});
+
+    if (!validateForm()) return;
+
+    // Vérifier entrepriseId avant soumission
+    let finalFormData = { ...formData };
+    
+    if (!finalFormData.entrepriseId && finalFormData.serviceId) {
+      //console.log("Service sélectionné mais entrepriseId manquant, tentative d'utiliser l'entrepriseId par défaut");
       const defaultEntrepriseId = getDefaultEntrepriseId();
       
       if (defaultEntrepriseId) {
-        // Mettre à jour le formData avec l'entrepriseId par défaut
-        setFormData(prev => ({
-          ...prev,
+        finalFormData = {
+          ...finalFormData,
           entrepriseId: defaultEntrepriseId
-        }));
-        
-        console.log("EntrepriseId par défaut utilisée:", defaultEntrepriseId);
+        };
+        setFormData(finalFormData);
+        //console.log("EntrepriseId par défaut utilisée:", defaultEntrepriseId);
       } else {
         console.error("Aucune entrepriseId par défaut disponible");
         toast.error("Erreur de sélection du service. Veuillez réessayer ou contacter l'administrateur.");
@@ -245,50 +254,36 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
       }
     }
 
-    if (hasErrors) {
-      setErrors(newErrors);
-      toast.error("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-
     setIsLoading(true);
+    
     try {
-      // Préparation des données à envoyer
-      const clientData = {
-        ...formData
-      };
-      
-      console.log("Données à envoyer:", clientData);
-      const response = await createClient(clientData);
-      console.log("Réponse reçue:", response);
+      //console.log("Données à envoyer:", finalFormData);
+      const response = await createClient(finalFormData);
+      //console.log("Réponse reçue:", response);
 
-      if (response.type === "success" && response.data?.pendingChangeId) {
-        // Cas où le client a été créé mais nécessite une validation OTP
-        toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
-        setPendingChangeId(response.data.pendingChangeId);
-        setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.data.pendingChangeId);
-      } else if (response.message && response.pendingChangeId) {
-        // Format de réponse alternatif du middleware requireOTPValidation
-        toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
-        setPendingChangeId(response.pendingChangeId);
-        setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.pendingChangeId);
-      } else if (response.type === "success") {
-        // Cas où le client a été créé sans besoin de validation OTP
-        toast.success("Client créé avec succès !");
-        resetModal();
-      } else if (response.errors) {
-        // Gestion structurée des erreurs du backend
-        setErrors(response.errors);
-        // Afficher la première erreur en toast
-        const firstError = Object.values(response.errors)[0]?.[0];
-        if (firstError) {
-          toast.error(firstError);
+      if (response.success || response.type === "success") {
+        if (response.data?.pendingChangeId || response.pendingChangeId) {
+          toast.success("Demande de création envoyée ! Veuillez entrer le code OTP.");
+          setPendingChangeId(response.data?.pendingChangeId || response.pendingChangeId);
+          setShowOtpVerification(true);
+          //console.log("OTP Verification activée, pendingChangeId:", response.data?.pendingChangeId || response.pendingChangeId);
+        } else {
+          toast.success("Client créé avec succès !");
+          resetModal();
         }
       } else {
-        toast.error(response.error || "Une erreur est survenue");
-        setErrors({ global: [response.error || "Une erreur est survenue"] });
+        // Gestion des erreurs
+        if (response.errors) {
+          setErrors(response.errors);
+          const firstError = Object.values(response.errors)[0]?.[0];
+          if (firstError) {
+            toast.error(firstError);
+          }
+        } else {
+          const errorMessage = response.error || response.message || "Une erreur est survenue";
+          toast.error(errorMessage);
+          setErrors({ global: [errorMessage] });
+        }
       }
     } catch (error: any) {
       console.error("Erreur complète:", error);
@@ -301,7 +296,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
   };
 
   const verifyOtp = async () => {
-    if (!otpCode || otpCode.length < 6) {
+    if (!otpCode || otpCode.length !== 6) {
       toast.error("Veuillez entrer un code OTP valide à 6 chiffres");
       return;
     }
@@ -312,11 +307,11 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
     }
 
     setIsLoading(true);
+    
     try {
-      console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: formData.entrepriseId });
-      // Vérification OTP avec le pendingChangeId et l'entrepriseId
+      //console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: formData.entrepriseId });
       const response = await validateOTP(pendingChangeId, otpCode, formData.entrepriseId);
-      console.log("Réponse API validation OTP:", response);
+      //console.log("Réponse API validation OTP:", response);
       
       if (response.success) {
         toast.success("Client validé avec succès !");
@@ -324,18 +319,19 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
       } else {
         toast.error(response.error || "Code OTP invalide ou expiré");
         
-        // Si des erreurs de validation sont présentes, les afficher
         if (response.errors) {
           Object.values(response.errors).forEach((errorArray: any) => {
-            errorArray.forEach((error: string) => {
-              toast.error(error);
-            });
+            if (Array.isArray(errorArray)) {
+              errorArray.forEach((error: string) => {
+                toast.error(error);
+              });
+            }
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la validation OTP:", error);
-      toast.error("Échec de la vérification du code OTP");
+      toast.error(error.message || "Échec de la vérification du code OTP");
     } finally {
       setIsLoading(false);
     }
@@ -350,7 +346,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
     const selectedService = services.find((service) => service._id === selectedId);
   
     if (selectedService) {
-      console.log("Service sélectionné:", selectedService);
+      //console.log("Service sélectionné:", selectedService);
       
       // Utilisez l'entrepriseId du service s'il existe, sinon utilisez celui passé en prop
       const serviceEntrepriseId = selectedService.entrepriseId || entrepriseId;
@@ -365,32 +361,38 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
       setSelectedServiceNiveaux(selectedService.niveauxDisponibles || []);
       
       // Réinitialiser le niveau de service sélectionné
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         serviceId: selectedService._id,
         nomService: selectedService.nomService,
         entrepriseId: serviceEntrepriseId,
         niveauService: "", // Réinitialiser à vide lors du changement de service
-      });
+      }));
       
-      setErrors((prev) => ({ ...prev, serviceId: [], niveauService: [] }));
+      // Effacer les erreurs des champs service et niveau
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.serviceId;
+        delete newErrors.niveauService;
+        return newErrors;
+      });
     } else {
       // Réinitialiser le service et les niveaux
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         serviceId: "",
         nomService: "",
         niveauService: "",
         // Nous ne réinitialisons pas entrepriseId ici pour le conserver
-      });
+      }));
       setSelectedServiceNiveaux([]);
     }
   };
 
   // Fonction helper pour afficher les erreurs d'un champ
   const getFieldError = (fieldName: string) => {
-    return errors[fieldName]?.length > 0 ? (
-      <span className="text-red-500 text-sm mt-1">{errors[fieldName][0]}</span>
+    return errors[fieldName] && errors[fieldName].length > 0 ? (
+      <span className="text-red-500 text-sm mt-1 block">{errors[fieldName][0]}</span>
     ) : null;
   };
 
@@ -408,10 +410,10 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
               onChange={handleChange}
               min="1"
               max="31"
-              className={`border ${errors.jourPaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full`}
+              className={`border ${errors.jourPaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
             {getFieldError('jourPaiement')}
-            <span className="text-xs text-gray-500 mt-1">Jour du mois (1-31) où le paiement sera effectué</span>
+            <span className="text-xs text-gray-500 mt-1 block">Jour du mois (1-31) où le paiement sera effectué</span>
           </div>
         );
       case 'hebdomadaire':
@@ -422,7 +424,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
               name="jourPaiement"
               value={formData.jourPaiement}
               onChange={handleChange}
-              className={`border ${errors.jourPaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full`}
+              className={`border ${errors.jourPaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             >
               <option value="0">Dimanche</option>
               <option value="1">Lundi</option>
@@ -446,10 +448,10 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
               onChange={handleChange}
               min="1"
               max="24"
-              className={`border ${errors.intervallePaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full`}
+              className={`border ${errors.intervallePaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
             {getFieldError('intervallePaiement')}
-            <span className="text-xs text-gray-500 mt-1">Nombre d'heures entre chaque paiement (1-24)</span>
+            <span className="text-xs text-gray-500 mt-1 block">Nombre d'heures entre chaque paiement (1-24)</span>
           </div>
         );
       case 'minute':
@@ -463,10 +465,10 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
               onChange={handleChange}
               min="1"
               max="60"
-              className={`border ${errors.intervallePaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full`}
+              className={`border ${errors.intervallePaiement ? 'border-red-500' : 'border-gray-300'} rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
             {getFieldError('intervallePaiement')}
-            <span className="text-xs text-gray-500 mt-1">Nombre de minutes entre chaque paiement (1-60)</span>
+            <span className="text-xs text-gray-500 mt-1 block">Nombre de minutes entre chaque paiement (1-60)</span>
           </div>
         );
       default:
@@ -575,7 +577,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                       onChange={handleChange}
                       placeholder="Ex: Dupont"
                       className={`border ${errors.nom ? 'border-red-500' : 'border-gray-300'
-                        } rounded-md p-2 w-full`}
+                        } rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       required
                     />
                     {errors.nom?.length > 0 ? (
@@ -593,7 +595,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                       onChange={handleChange}
                       placeholder="Ex: Jean"
                       className={`border ${errors.prenom ? 'border-red-500' : 'border-gray-300'
-                        } rounded-md p-2 w-full`}
+                        } rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       required
                     />
                     {errors.prenom?.length > 0 ? (
@@ -607,7 +609,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                 <div>
                   <label className="block mb-1 font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
                   <div className={`flex items-center border ${errors.email ? 'border-red-500' : 'border-gray-300'
-                    } rounded-md p-2`}>
+                    } rounded-md p-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent`}>
                     <Mail className="w-4 h-4 mr-2 text-gray-500" />
                     <input
                       type="email"
@@ -632,7 +634,9 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                     value={formData.telephone}
                     onChange={(_, fullNumber) => {
                       setFormData(prev => ({ ...prev, telephone: fullNumber }));
-                      setErrors(prev => ({ ...prev, telephone: [] }));
+                      if (errors.telephone) {
+                        setErrors(prev => ({ ...prev, telephone: [] }));
+                      }
                     }}
                     error={errors.telephone?.[0]}
                     required
@@ -645,7 +649,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                 <div>
                   <label className="block mb-1 font-medium text-gray-700">Adresse <span className="text-red-500">*</span></label>
                   <div className={`flex items-center border ${errors.adresse ? 'border-red-500' : 'border-gray-300'
-                    } rounded-md p-2`}>
+                    } rounded-md p-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent`}>
                     <Home className="w-4 h-4 mr-2 text-gray-500" />
                     <input
                       type="text"
@@ -673,7 +677,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                     onChange={handleChange}
                     placeholder="Numéro d'identification national"
                     className={`w-full border ${errors.nin ? 'border-red-500' : 'border-gray-300'
-                      } rounded-md p-2`}
+                      } rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {getFieldError('nin')}
                 </div>
@@ -692,7 +696,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                         name="frequencePaiement"
                         value={formData.frequencePaiement}
                         onChange={handleChange}
-                        className="border border-gray-300 rounded-md p-2 w-full"
+                        className="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="mensuel">Mensuel</option>
                         <option value="hebdomadaire">Hebdomadaire</option>
@@ -706,7 +710,7 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                     
                     <div>
                       <label className="block mb-1 font-medium text-gray-700">Date programmée</label>
-                      <div className="flex items-center border border-gray-300 rounded-md p-2">
+                      <div className="flex items-center border border-gray-300 rounded-md p-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
                         <Calendar className="w-4 h-4 mr-2 text-gray-500" />
                         <input
                           type="datetime-local"
@@ -717,27 +721,35 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                         />
                       </div>
                       {getFieldError('dateProgrammee')}
-                      <span className="text-xs text-gray-500 mt-1">Date et heure prévues (optionnel)</span>
+                      <span className="text-xs text-gray-500 mt-1 block">Date et heure prévues (optionnel)</span>
                     </div>
                   </div>
 
                   {/* Champs conditionnels basés sur la fréquence de paiement */}
                   {renderFrequencyFields()}
 
-                  <div className="mt-3">
-                    <label className="flex items-center space-x-2">
+                  {/* ✅ Checkbox aPayer corrigé avec indicateur visuel - LOGIQUE INVERSÉE POUR LES CLIENTS */}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <label className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
                         name="aPayer"
-                        checked={formData.aPayer}
+                        checked={formData.aFAirePayer}
                         onChange={handleCheckboxChange}
-                        className="rounded text-orange-500 focus:ring-orange-500"
+                        className="w-5 h-5 text-orange-500 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                       />
-                      <span className="text-gray-700">Client à payer</span>
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${formData.aFAirePayer ? 'text-green-600' : 'text-red-600'}`}>
+                          {formData.aFAirePayer ? '✅ Client vas payer' : ' ❌Client ne vas payé'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formData.aFAirePayer 
+                            ? 'Ce client recevra des paiements automatiques selon la fréquence définie'
+                            : 'Ce client ne recevra pas de paiements automatiques  '
+                          }
+                        </span>
+                      </div>
                     </label>
-                    <span className="text-xs text-gray-500 block mt-1">
-                      Décochez cette case si le client ne doit pas recevoir de paiements automatiques
-                    </span>
                   </div>
                 </div>
 

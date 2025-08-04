@@ -40,7 +40,7 @@ const AffecterGerantServiceModal = ({ services = [], gerants = [], entrepriseId 
 
   useEffect(() => {
    
-    console.log("Gérants disponibles:", gerants);
+    //console.log("Gérants disponibles:", gerants);
     setFormData(prev => ({ ...prev, entrepriseId }));
   }, [services, gerants, entrepriseId]);
 
@@ -75,7 +75,7 @@ const AffecterGerantServiceModal = ({ services = [], gerants = [], entrepriseId 
     setIsLoading(true);
     try {
       const response = await affecterGerantService(formData);
-      console.log("Réponse reçue:", response);
+      //console.log("Réponse reçue:", response);
 
       if (response.type === "success") {
         toast.success(response.message || "Gérant affecté au service avec succès !");

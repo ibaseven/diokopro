@@ -94,12 +94,12 @@ const CreateServiceModal = ({ enterprises }: CreateServiceModalProps) => {
 
     setIsLoading(true);
     try {
-      console.log("Envoi des données pour création du service:", {...formData, niveaux, enterpriseId});
+     // console.log("Envoi des données pour création du service:", {...formData, niveaux, enterpriseId});
       const response = await createService(enterpriseId, {
         ...formData,
         niveauxDisponibles: niveaux,
       });
-      console.log("Réponse API création service:", response);
+      //console.log("Réponse API création service:", response);
 
       // Gérer tous les cas possibles de réponse
       if (response.type === "success" && response.data?.pendingChangeId) {
@@ -108,13 +108,13 @@ const CreateServiceModal = ({ enterprises }: CreateServiceModalProps) => {
        
         setPendingChangeId(response.data.pendingChangeId);
         setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.data.pendingChangeId);
+       // console.log("OTP Verification activée, pendingChangeId:", response.data.pendingChangeId);
       } else if (response.message && response.pendingChangeId) {
         // Format de réponse alternatif du middleware requireOTPValidation
         toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
         setPendingChangeId(response.pendingChangeId);
         setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.pendingChangeId);
+        //console.log("OTP Verification activée, pendingChangeId:", response.pendingChangeId);
       } else if (response.type === "success") {
         // Cas où le service a été créé sans besoin de validation OTP
         toast.success("Service créé avec succès !");
@@ -152,10 +152,10 @@ const CreateServiceModal = ({ enterprises }: CreateServiceModalProps) => {
 
     setIsLoading(true);
     try {
-      console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: enterpriseId });
+     // console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: enterpriseId });
       // Vérification OTP avec le pendingChangeId et l'entrepriseId
       const response = await validateOTP(pendingChangeId, otpCode, enterpriseId);
-      console.log("Réponse API validation OTP:", response);
+     // console.log("Réponse API validation OTP:", response);
       
       if (response.success) {
         toast.success("Service validé avec succès !");

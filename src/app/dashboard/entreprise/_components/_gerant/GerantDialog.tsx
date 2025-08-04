@@ -85,7 +85,7 @@ const GerantDialog: React.FC<GerantDialogProps> = ({
         return;
       }
 
-      console.log("Résultat de mise à jour:", result);
+      //console.log("Résultat de mise à jour:", result);
 
       if (result.data.pendingChangeId) {
         // Si nous avons un pendingChangeId, nous devons collecter un OTP
@@ -123,7 +123,7 @@ const GerantDialog: React.FC<GerantDialogProps> = ({
 
     setIsVerifying(true);
     try {
-      console.log("Vérification OTP avec:", { otpCode, pendingChangeId });
+      //console.log("Vérification OTP avec:", { otpCode, pendingChangeId });
 
       // Appeler la fonction de vérification OTP
       const result = await verifyOtp(otpCode, pendingChangeId);
@@ -136,7 +136,7 @@ const GerantDialog: React.FC<GerantDialogProps> = ({
         return;
       }
 
-      console.log("Résultat de vérification OTP:", result);
+      //console.log("Résultat de vérification OTP:", result);
 
       if (result.type === 'success') {
         toast.success("Le client a été mis à jour avec succès!");

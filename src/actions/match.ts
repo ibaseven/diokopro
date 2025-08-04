@@ -11,20 +11,20 @@ const AffecterGerantSchema = z.object({
 });
 
 export const affecterGerantService = async (formData) => {
-  console.log("Début affecterGerantService - Données reçues:", formData);
+  //console.log("Début affecterGerantService - Données reçues:", formData);
 
   try {
     const validation = AffecterGerantSchema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, gerantId } = validation.data;
 
-    console.log("Données validées:", { serviceId, gerantId });
-    console.log("URL de l'API:", `${ASSIGN_MANAGER_URL}/${entrepriseId}`);
+    //console.log("Données validées:", { serviceId, gerantId });
+    //console.log("URL de l'API:", `${ASSIGN_MANAGER_URL}/${entrepriseId}`);
 
     const response = await createdOrUpdated({ 
       url: `${ASSIGN_MANAGER_URL}/${entrepriseId}`, 
@@ -32,7 +32,7 @@ export const affecterGerantService = async (formData) => {
       updated: true 
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { 
       type: "success", 
       message: "Gérant affecté au service avec succès", 

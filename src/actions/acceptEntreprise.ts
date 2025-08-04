@@ -14,21 +14,21 @@ const RefuseEntrepriseSchema = z.object({
   raisonRefus: z.string().min(1, { message: "La raison du refus est obligatoire" })
 });
 export const refuseEntreprise = async (formData) => {
-  console.log("Début refuseEntreprise - Données reçues:", formData);
+  //console.log("Début refuseEntreprise - Données reçues:", formData);
 
   try {
     // Validation des données
     const validation = RefuseEntrepriseSchema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, raisonRefus } = validation.data;
 
-    console.log("Données validées:", { entrepriseId, raisonRefus });
-    console.log("URL de l'API:", `${REFUSE_ENTREPRISE_URL}/${entrepriseId}`);
+    //console.log("Données validées:", { entrepriseId, raisonRefus });
+    //console.log("URL de l'API:", `${REFUSE_ENTREPRISE_URL}/${entrepriseId}`);
 
     // Utilisation de la fonction createdOrUpdated pour effectuer une requête PUT
     const response = await createdOrUpdated({
@@ -37,7 +37,7 @@ export const refuseEntreprise = async (formData) => {
       updated: true
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
 
     // Vérifiez si la réponse est réussie
     if (response) {  
@@ -69,21 +69,21 @@ export const refuseEntreprise = async (formData) => {
 };
 
 export const updateEntrepriseStatus = async (formData) => {
-  console.log("Début updateEntrepriseStatus - Données reçues:", formData);
+  //console.log("Début updateEntrepriseStatus - Données reçues:", formData);
 
   try {
     // Validation des données
     const validation = UpdateEntrepriseStatusSchema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, estActif } = validation.data;
 
-    console.log("Données validées:", { entrepriseId, estActif });
-    console.log("URL de l'API:", `${ACTIVATE_ENTREPRISE_URL}/${entrepriseId}`);
+    //console.log("Données validées:", { entrepriseId, estActif });
+    //console.log("URL de l'API:", `${ACTIVATE_ENTREPRISE_URL}/${entrepriseId}`);
 
     // Utilisation de la fonction createdOrUpdated comme dans vos autres actions
     const response = await createdOrUpdated({
@@ -92,7 +92,7 @@ export const updateEntrepriseStatus = async (formData) => {
       updated: true
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return {
       type: "success",
       message: `L'entreprise a été ${estActif ? 'acceptée' : 'refusée'} avec succès`,

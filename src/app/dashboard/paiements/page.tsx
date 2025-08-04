@@ -9,7 +9,7 @@ const ClientsByServicePage = async () => {
 
   
   const currentEnterpriseId = enterprises[0]?._id; // Assuming you want the first enterprise
-  console.log(currentEnterpriseId);
+  //console.log(currentEnterpriseId);
   
   if (!currentEnterpriseId) {
     throw new Error("No enterprise found");
@@ -21,7 +21,7 @@ const ClientsByServicePage = async () => {
   const paie =await await fetchJSON(`${GET_ALL_PAIEMENT_ENTREPRISE_URL}/${currentEnterpriseId}`);
 
     const agentsResponse = await fetchJSON(`${GET_ALL_AGENTS}/${currentEnterpriseId}`);
-    console.log(agentsResponse);
+    //console.log(agentsResponse);
     
     const agents = Array.isArray(agentsResponse) ? agentsResponse : agentsResponse.data || [];
   

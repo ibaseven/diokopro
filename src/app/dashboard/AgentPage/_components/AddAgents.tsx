@@ -40,17 +40,17 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
     entrepriseId: entrepriseId,
     // Nouveaux champs pour les paiements
     salaire: "",
-    frequencePaiement: "",
-    intervallePaiement: "",
-    jourPaiement: "",
+    frequencePaiement: "mensuel",
+    intervallePaiement: 1,
+    jourPaiement: 1,
     wallet: "",
-    aPayer: "",
+    aPayer: false, // ✅ Initialisé à false par défaut
     dateProgrammee: ""
   });
 
   // Log pour déboguer l'état des services
   useEffect(() => {
-    console.log("Services disponibles:", services);
+    //console.log("Services disponibles:", services);
 
     // Vérifier si un service existe mais que l'entrepriseId est manquante
     const servicesMissingEntrepriseId = services.filter(service => !service.entrepriseId);
@@ -66,7 +66,7 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
           ...prev,
           entrepriseId: defaultEntrepriseId
         }));
-        console.log("EntrepriseId par défaut défini:", defaultEntrepriseId);
+        //console.log("EntrepriseId par défaut défini:", defaultEntrepriseId);
       }
     }
   }, [services]);
@@ -100,13 +100,20 @@ const CreateAgentModal = ({ services = [], entrepriseId = "" }: CreateAgentModal
     // Effacer l'erreur du champ modifié
     setErrors((prev) => ({ ...prev, [name]: [] }));
   };
-const handleWalletChange = (value) => {
-  setFormData(prev => ({ ...prev, wallet: value }));
-  setErrors(prev => ({ ...prev, wallet: [] }));
-};
+
+  const handleWalletChange = (value) => {
+    setFormData(prev => ({ ...prev, wallet: value }));
+    setErrors(prev => ({ ...prev, wallet: [] }));
+  };
+
+  // ✅ Fonction corrigée pour gérer le checkbox aPayer
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
+    //console.log(`Checkbox ${name} changé:`, checked); // Debug
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: checked 
+    }));
   };
 
   const openModal = () => {
@@ -138,20 +145,25 @@ const handleWalletChange = (value) => {
       frequencePaiement: "mensuel",
       intervallePaiement: 1,
       jourPaiement: 1,
-      aPayer: true,
+      aPayer: false, // ✅ Réinitialisé à false
       dateProgrammee: ""
     });
     setErrors({});
   };
+
   const walletOptions = [ 
     { value: 'orange-money-senegal', label: 'Orange Money Sénégal' }, 
     { value: 'free-money-senegal', label: 'Free Money Sénégal' }, 
     { value: 'wave-senegal', label: 'Wave Sénégal' }, 
   ]
+
   const handleSubmit = async () => {
     setErrors({});
     const newErrors: ValidationErrors = {};
     let hasErrors = false;
+
+    // Debug: Afficher l'état d'aPayer avant soumission
+    //console.log("État aPayer lors de la soumission:", formData.aPayer);
 
     // Vérification de chaque champ obligatoire
     if (!formData.serviceId) {
@@ -186,11 +198,11 @@ const handleWalletChange = (value) => {
       newErrors.adresse = ["L'adresse est requise"];
       hasErrors = true;
     }
-if (!formData.wallet || formData.wallet.trim() === "") {
-  newErrors.wallet = ["Le portefeuille est requis"];
-  hasErrors = true;
-}
 
+    if (!formData.wallet || formData.wallet.trim() === "") {
+      newErrors.wallet = ["Le portefeuille est requis"];
+      hasErrors = true;
+    }
 
     // Validation spécifique à la fréquence
     switch (formData.frequencePaiement) {
@@ -222,7 +234,7 @@ if (!formData.wallet || formData.wallet.trim() === "") {
 
     // Si entrepriseId est vide et qu'un service est sélectionné, essayer d'utiliser une valeur par défaut
     if (!formData.entrepriseId && formData.serviceId) {
-      console.log("Service sélectionné mais entrepriseId manquant, tentative d'utiliser l'entrepriseId par défaut");
+      //console.log("Service sélectionné mais entrepriseId manquant, tentative d'utiliser l'entrepriseId par défaut");
       const defaultEntrepriseId = getDefaultEntrepriseId();
 
       if (defaultEntrepriseId) {
@@ -232,7 +244,7 @@ if (!formData.wallet || formData.wallet.trim() === "") {
           entrepriseId: defaultEntrepriseId
         }));
 
-        console.log("EntrepriseId par défaut utilisée:", defaultEntrepriseId);
+        //console.log("EntrepriseId par défaut utilisée:", defaultEntrepriseId);
       } else {
         console.error("Aucune entrepriseId par défaut disponible");
         toast.error("Erreur de sélection du service. Veuillez réessayer ou contacter l'administrateur.");
@@ -249,20 +261,20 @@ if (!formData.wallet || formData.wallet.trim() === "") {
     setIsLoading(true);
     try {
       const response = await createAgent(formData);
-      console.log("Réponse reçue:", response);
+      //console.log("Réponse reçue:", response);
 
       if (response.type === "success" && response.data?.pendingChangeId) {
         // Cas où l'agent a été créé mais nécessite une validation OTP
         toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
         setPendingChangeId(response.data.pendingChangeId);
         setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.data.pendingChangeId);
+        //console.log("OTP Verification activée, pendingChangeId:", response.data.pendingChangeId);
       } else if (response.message && response.pendingChangeId) {
         // Format de réponse alternatif du middleware requireOTPValidation
         toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
         setPendingChangeId(response.pendingChangeId);
         setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", response.pendingChangeId);
+        //console.log("OTP Verification activée, pendingChangeId:", response.pendingChangeId);
       } else if (response.type === "success") {
         // Cas où l'agent a été créé sans besoin de validation OTP
         toast.success("Agent créé avec succès !");
@@ -302,10 +314,10 @@ if (!formData.wallet || formData.wallet.trim() === "") {
 
     setIsLoading(true);
     try {
-      console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: formData.entrepriseId });
+      //console.log("Validation OTP:", { pendingChangeId, otpCode, entrepriseId: formData.entrepriseId });
       // Vérification OTP avec le pendingChangeId et l'entrepriseId
       const response = await validateOTP(pendingChangeId, otpCode, formData.entrepriseId);
-      console.log("Réponse API validation OTP:", response);
+      //console.log("Réponse API validation OTP:", response);
 
       if (response.success) {
         toast.success("Agent validé avec succès !");
@@ -339,7 +351,7 @@ if (!formData.wallet || formData.wallet.trim() === "") {
     const selectedService = services.find((service) => service._id === selectedId);
 
     if (selectedService) {
-      console.log("Service sélectionné:", selectedService);
+      //console.log("Service sélectionné:", selectedService);
 
       // Utilisez l'entrepriseId du service s'il existe, sinon utilisez celui passé en prop
       const serviceEntrepriseId = selectedService.entrepriseId || entrepriseId;
@@ -626,7 +638,7 @@ if (!formData.wallet || formData.wallet.trim() === "") {
                     name="salaire"
                     value={formData.salaire}
                     onChange={handleChange}
-                    placeholder="exemple@domaine.com"
+                    placeholder="Montant du salaire"
                     className="flex-1 outline-none"
                     required
                   />
@@ -691,8 +703,6 @@ if (!formData.wallet || formData.wallet.trim() === "") {
                   </h3>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-
-
                     <div>
                       <label className="block mb-1 font-medium text-gray-700">Fréquence de paiement</label>
                       <select
@@ -712,38 +722,46 @@ if (!formData.wallet || formData.wallet.trim() === "") {
                     </div>
                     <div>
                       <label className="block mb-1 font-medium text-gray-700">Date programmée</label>
-                      <div className="flex items-center border border-gray-300 rounded-md p-2 bg-gray-100">
+                      <div className="flex items-center border border-gray-300 rounded-md p-2">
                         <Calendar className="w-4 h-4 mr-2 text-gray-500" />
                         <input
                           type="datetime-local"
                           name="dateProgrammee"
-                          value={new Date().toISOString().slice(0, 16)} // Date actuelle au format datetime-local
-                          readOnly // Empêche la modification
-                          className="flex-1 outline-none bg-transparent cursor-not-allowed"
+                          value={formData.dateProgrammee}
+                          onChange={handleChange}
+                          className="flex-1 outline-none"
                         />
                       </div>
                       {getFieldError('dateProgrammee')}
-                      <span className="text-xs text-gray-500 mt-1">Date et heure actuelles (non modifiable)</span>
+                      <span className="text-xs text-gray-500 mt-1">Date et heure prévues (optionnel)</span>
                     </div>
                   </div>
 
                   {/* Champs conditionnels basés sur la fréquence de paiement */}
                   {renderFrequencyFields()}
 
-                  <div className="mt-3">
-                    <label className="flex items-center space-x-2">
+                  {/* ✅ Checkbox aPayer corrigé avec indicateur visuel */}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <label className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
                         name="aPayer"
                         checked={formData.aPayer}
                         onChange={handleCheckboxChange}
-                        className="rounded text-orange-500 focus:ring-orange-500"
+                        className="w-5 h-5 text-orange-500 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                       />
-                      <span className="text-gray-700">Agent à payer</span>
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${formData.aPayer ? 'text-green-600' : 'text-gray-700'}`}>
+                          {formData.aPayer ? '✅ Agent à payer' : '❌ Agent non payé'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formData.aPayer 
+                            ? 'Cet agent recevra des paiements automatiques selon la fréquence définie'
+                            : 'Cet agent ne recevra pas de paiements automatiques'
+                          }
+                        </span>
+                      </div>
                     </label>
-                    <span className="text-xs text-gray-500 block mt-1">
-                      Décochez cette case si l'agent ne doit pas recevoir de paiements automatiques
-                    </span>
                   </div>
                 </div>
 

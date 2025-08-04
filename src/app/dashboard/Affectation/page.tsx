@@ -22,7 +22,7 @@ const ServiceManagerPage = async () => {
   
   // Fetch gérants for this enterprise
   const gerants = await fetchJSON(`${GET_ALL_GERANTS}/${currentEnterpriseId}`);
-  console.log(gerants);
+ // console.log(gerants);
   
   return (
     <div className="container mx-auto p-4">

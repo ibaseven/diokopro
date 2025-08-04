@@ -14,7 +14,7 @@ const ClientPage = async () => {
   
   // Then fetch services with enterprise ID
   const servicesData = await fetchJSON(`${GET_ALL_SERVICE}/${currentEnterpriseId}`);
-  console.log(servicesData);
+  //console.log(servicesData);
   
   // Add entrepriseId to each service
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

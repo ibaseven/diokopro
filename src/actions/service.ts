@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createdOrUpdated } from "@/lib/api";
-import { SERVICE_URL } from "./endpoint";
+import { BASE_URL, SERVICE_URL } from "./endpoint";
 
 // Schéma de validation pour les données du service
 const ServiceSchema = z.object({
@@ -17,20 +17,20 @@ const ServiceSchema = z.object({
 
 // Création d'un service
 const createService = async (entrepriseId, formData) => {
-  console.log("🏁 Début createService dans service.ts");
-  console.log("📦 Données reçues:", formData);
-  console.log("🏢 EntrepriseId:", entrepriseId);
+  //console.log("🏁 Début createService dans service.ts");
+  //console.log("📦 Données reçues:", formData);
+  //console.log("🏢 EntrepriseId:", entrepriseId);
 
   try {
     // Validation des données
-    console.log("🔍 Début validation Zod");
+    //console.log("🔍 Début validation Zod");
     const validation = ServiceSchema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("❌ Échec validation Zod:", validation.error.flatten());
+      //console.log("❌ Échec validation Zod:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
-    console.log("✅ Validation Zod réussie");
+    //console.log("✅ Validation Zod réussie");
 
     const { nomService, description, tarifactionBase, niveauxDisponibles } = validation.data;
 
@@ -41,16 +41,16 @@ const createService = async (entrepriseId, formData) => {
       tarifactionBase,
       niveauxDisponibles
     };
-    console.log("📝 Données préparées pour l'API:", reqBody);
-    console.log("🔗 URL de l'API:", `${SERVICE_URL}/entreprise/${entrepriseId}`);
+    //console.log("📝 Données préparées pour l'API:", reqBody);
+    //console.log("🔗 URL de l'API:", `${SERVICE_URL}/entreprise/${entrepriseId}`);
 
     // Appel à l'API
-    console.log("🚀 Envoi de la requête à l'API...");
+    //console.log("🚀 Envoi de la requête à l'API...");
     const response = await createdOrUpdated({ 
       url: `${SERVICE_URL}/entreprise/${entrepriseId}`, 
       data: reqBody 
     });
-    console.log("✨ Réponse de l'API:", response);
+    //console.log("✨ Réponse de l'API:", response);
 
     return { type: "success", data: response };
   } catch (error) {
@@ -76,23 +76,23 @@ const OTPValidationSchema = z.object({
 });
 
 const validateOTP = async (pendingChangeId, otp, entrepriseId) => {
-  console.log("🏁 Début validateOTP");
-  console.log("📦 Données reçues:", { pendingChangeId, otp, entrepriseId });
+  //console.log("🏁 Début validateOTP");
+  //console.log("📦 Données reçues:", { pendingChangeId, otp, entrepriseId });
 
   try {
     // Validation des données
-    console.log("🔍 Début validation Zod");
+    //console.log("🔍 Début validation Zod");
     const validation = OTPValidationSchema.safeParse({ pendingChangeId, otp });
 
     if (!validation.success) {
-      console.log("❌ Échec validation Zod:", validation.error.flatten());
+      //console.log("❌ Échec validation Zod:", validation.error.flatten());
       return { 
         success: false, 
         error: "Données invalides", 
         errors: validation.error.flatten().fieldErrors 
       };
     }
-    console.log("✅ Validation Zod réussie");
+    //console.log("✅ Validation Zod réussie");
 
     const validatedData = validation.data;
 
@@ -101,15 +101,15 @@ const validateOTP = async (pendingChangeId, otp, entrepriseId) => {
       pendingChangeId: validatedData.pendingChangeId,
       otp: validatedData.otp
     };
-    console.log("📝 Données préparées pour l'API:", reqBody);
+    //console.log("📝 Données préparées pour l'API:", reqBody);
 
     // Appel à l'API
-    console.log("🚀 Envoi de la requête à l'API...");
+    //console.log("🚀 Envoi de la requête à l'API...");
     const response = await createdOrUpdated({ 
-      url: `http://localhost:5000/api/validate-change/entreprise/${entrepriseId}`, 
+      url: `${BASE_URL}/validate-change/entreprise/${entrepriseId}`, 
       data: reqBody 
     });
-    console.log("✨ Réponse de l'API:", response);
+    //console.log("✨ Réponse de l'API:", response);
 
     return { 
       success: true, 

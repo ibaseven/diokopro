@@ -42,7 +42,7 @@ const LoginForm = () => {
     const result = await verifyOtp(null, formData);
     const entrepriseId = formData.get('entrepriseId');
 
-    console.log("ID de l'entreprise:", entrepriseId);
+   // console.log("ID de l'entreprise:", entrepriseId);
 
     setOtpState({
       type: result.type || "",

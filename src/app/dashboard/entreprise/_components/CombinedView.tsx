@@ -696,7 +696,7 @@ const CombinedView = ({
     };
 
     const handleUpdateService = (updatedService) => {
-        console.log("Updating service:", updatedService);
+        //console.log("Updating service:", updatedService);
         setIsServiceDialogOpen(false);
     };
 

@@ -13,7 +13,7 @@ export default async function page() {
         throw new Error("No enterprise found");
       }
       const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS_BY_ENTREPRISE}/${currentEnterpriseId}`);
-      console.log("+++++++gerant",gerantsResponse);
+     // console.log("+++++++gerant",gerantsResponse);
       
   return (
     <GerantsView gerants={gerantsResponse.gerants} services={[]} entrepriseId={''}/>

@@ -47,7 +47,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     const currentUser = await getAuthenticatedUser();
-    console.log("Authenticated User:", currentUser);
+    //console.log("Authenticated User:", currentUser);
 
     if (!currentUser) {
       return NextResponse.redirect(new URL("/auth/login", req.url));

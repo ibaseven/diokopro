@@ -110,13 +110,13 @@ const CreateGerantModal = ({ enterprises = [], defaultEntrepriseId = "" }: Creat
       return;
     }
 
-    console.log(newErrors);
+    //console.log(newErrors);
 
     setIsLoading(true);
     try {
-      console.log("Envoi des données pour création du gérant:", formData);
+      //console.log("Envoi des données pour création du gérant:", formData);
       const response = await createGerant(formData);
-      console.log("Réponse API création gérant:", response); // Debug log
+      //console.log("Réponse API création gérant:", response); // Debug log
   
       // Vérifier si la réponse inclut un ID de changement en attente (nécessitant une vérification OTP)
       if (
@@ -128,7 +128,7 @@ const CreateGerantModal = ({ enterprises = [], defaultEntrepriseId = "" }: Creat
         toast.success("Demande de création envoyée ! Veuillez entrer le code OTP envoyé à l'administrateur");
         setPendingChangeId(changeId);
         setShowOtpVerification(true);
-        console.log("OTP Verification activée, pendingChangeId:", changeId); // Debug log
+        //console.log("OTP Verification activée, pendingChangeId:", changeId); // Debug log
       } else if (response.type === "success") {
         // Cas où le gérant a été créé sans besoin de validation OTP
         toast.success("Gérant créé avec succès !");
@@ -163,10 +163,10 @@ const CreateGerantModal = ({ enterprises = [], defaultEntrepriseId = "" }: Creat
 
     setIsLoading(true);
     try {
-      console.log("Validation OTP:", { pendingChangeId, otpCode: code, entrepriseId: formData.entrepriseId });
+      //console.log("Validation OTP:", { pendingChangeId, otpCode: code, entrepriseId: formData.entrepriseId });
       // Vérification OTP avec le pendingChangeId
       const response = await validateOTP(pendingChangeId, code, formData.entrepriseId);
-      console.log("Réponse API validation OTP:", response); // Debug log
+      //console.log("Réponse API validation OTP:", response); // Debug log
       
       if (response.success) {
         toast.success("Gérant validé avec succès !");

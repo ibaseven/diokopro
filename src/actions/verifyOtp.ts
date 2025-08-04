@@ -3,6 +3,7 @@
 import { getRedirectUrlForRole } from "../../routes";
 import axios from "axios";
 import { cookies } from "next/headers";
+import { VERIFY_OTP_URL } from "./endpoint";
 
 export const verifyOtp = async (state: any, formData: FormData) => {
   let role: string;
@@ -12,7 +13,7 @@ export const verifyOtp = async (state: any, formData: FormData) => {
     const otp = formData.get("otp");
 
     // Envoyer une requête pour vérifier l'OTP
-    const res = await axios.post("http://localhost:5000/api/verifyOTP", {
+    const res = await axios.post(`${VERIFY_OTP_URL}`, {
       email,
       otp,
     });
@@ -46,8 +47,8 @@ export const verifyOtp = async (state: any, formData: FormData) => {
 
       // Obtenir l'URL de redirection en fonction du rôle
       const urlToRedirect = getRedirectUrlForRole(role);
-      console.log("Role:", role);
-      console.log("Redirect URL:", urlToRedirect);
+     // console.log("Role:", role);
+     // console.log("Redirect URL:", urlToRedirect);
 
       if (!urlToRedirect) {
         console.error("No redirect URL found for role:", role);

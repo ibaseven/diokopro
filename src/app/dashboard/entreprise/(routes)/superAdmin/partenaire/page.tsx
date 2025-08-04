@@ -47,7 +47,7 @@ const BalanceEntreprise=balance.totalSolde
   const agents = Array.isArray(agentsResponse) ? agentsResponse : agentsResponse.data || [];
 
   const gerantsResponse = await fetchJSON(`${GET_ALL_GERANTS}`);
-    console.log(gerantsResponse);
+    //console.log(gerantsResponse);
   const numberofEntreprise = await fetchJSON(`${GET_ALL_NUMBER_ENTREPRISE}`);
 
   

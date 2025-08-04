@@ -78,7 +78,7 @@ const handleAddServiceToAgent = useCallback(async (data) => {
         // Vous devrez créer/importer cette fonction depuis vos actions
         const result = await addServiceToAgent(serviceData);
         
-        console.log("Résultat de l'ajout de service à l'agent:", result);
+        //console.log("Résultat de l'ajout de service à l'agent:", result);
         
         // Adapter la structure de réponse
         if (result.pendingChangeId) {
@@ -146,7 +146,7 @@ const handleAddServiceToClient = useCallback(async (data) => {
         // Appeler l'action d'ajout de service
         const result = await addServiceToClient(serviceData);
         
-        console.log("Résultat de l'ajout de service:", result);
+        //("Résultat de l'ajout de service:", result);
         
         // Adapter la structure de réponse pour correspondre à ce que ClientDialog attend
         if (result.pendingChangeId) {
@@ -226,7 +226,7 @@ const handleAddServiceToClient = useCallback(async (data) => {
 
     const handleUpdateService = useCallback((updatedService) => {
         // Si vous avez une fonction pour mettre à jour les services, l'intégrer ici
-        console.log("Updating service:", updatedService);
+        //console.log("Updating service:", updatedService);
         setIsServiceDialogOpen(false);
     }, []);
 

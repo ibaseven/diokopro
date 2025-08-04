@@ -18,22 +18,22 @@ const UpdateGerantschema = GerantSchema.partial().extend({
 });
 // Création d'un gérant
 export const createGerant = async (formData) => {
-  console.log("🏁 Début createGerant dans service.ts");
-  console.log("📦 Données reçues:", formData);
+  //console.log("🏁 Début createGerant dans service.ts");
+  //console.log("📦 Données reçues:", formData);
 
   try {
     // Validation des données
-    console.log("🔍 Début validation Zod");
+    //console.log("🔍 Début validation Zod");
     const validation = GerantSchema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("❌ Échec validation Zod:", validation.error.flatten());
+      //console.log("❌ Échec validation Zod:", validation.error.flatten());
       return { errors: validation.error.flatten().fieldErrors };
     }
-    console.log("✅ Validation Zod réussie");
+    //console.log("✅ Validation Zod réussie");
 
     const { nom, prenom, email, password, telephone, entrepriseId } = validation.data;
-    console.log("🏢 EntrepriseId:", entrepriseId);
+    //console.log("🏢 EntrepriseId:", entrepriseId);
 
     // Préparation des données pour l'API
     const reqBody = {
@@ -43,16 +43,16 @@ export const createGerant = async (formData) => {
       password,
       telephone
     };
-    console.log("📝 Données préparées pour l'API:", reqBody);
-    console.log("🔗 URL de l'API:", `${GERANT_URL}/${entrepriseId}`);
+    //console.log("📝 Données préparées pour l'API:", reqBody);
+    //console.log("🔗 URL de l'API:", `${GERANT_URL}/${entrepriseId}`);
 
     // Appel à l'API
-    console.log("🚀 Envoi de la requête à l'API...");
+    //console.log("🚀 Envoi de la requête à l'API...");
     const response = await createdOrUpdated({ 
       url: `${GERANT_URL}/${entrepriseId}`, 
       data: reqBody 
     });
-    console.log("✨ Réponse de l'API:", response);
+    //console.log("✨ Réponse de l'API:", response);
 
     return { type: "success", message: "Gérant créé avec succès",data:response };
   } catch (error: any) {
@@ -70,20 +70,20 @@ export const createGerant = async (formData) => {
   }
 };
 export const updatedGerant = async (formData) => {
-  console.log("Début updategerant- Données reçues:", formData);
+  //console.log("Début updategerant- Données reçues:", formData);
 
   try {
     const validation = UpdateGerantschema.safeParse(formData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId,  gerantId, ...gerantData } = validation.data;
 
-    console.log("Données validées:", gerantData);
-    console.log("URL de l'API:", `${UPDATE_GERANT_URL}/${entrepriseId}/gerant/${gerantId}`);
+    //console.log("Données validées:", gerantData);
+    //console.log("URL de l'API:", `${UPDATE_GERANT_URL}/${entrepriseId}/gerant/${gerantId}`);
 
     const response = await createdOrUpdated({ 
       url: `${UPDATE_GERANT_URL}/${entrepriseId}/gerant/${gerantId}`, 
@@ -91,7 +91,7 @@ export const updatedGerant = async (formData) => {
       updated: true
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { type: "success", data: response };
   } catch (error) {
     console.error("Erreur dans updateClient:", error);
@@ -104,7 +104,7 @@ export const updatedGerant = async (formData) => {
   }
 }
 export const deleteClient = async (formData) => {
-  console.log("Début deleteClient - Données reçues:", formData);
+  //console.log("Début deleteClient - Données reçues:", formData);
 
   try {
     // Validation des données
@@ -115,14 +115,14 @@ export const deleteClient = async (formData) => {
     }).safeParse(formData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+     // console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, gerantId } = validation.data;
 
     const apiUrl = `${DELETE_CLIENT_URL}/${entrepriseId}/service/${serviceId}/client/${gerantId}`;
-    console.log("URL de l'API:", apiUrl);
+    //console.log("URL de l'API:", apiUrl);
 
     // Suppression logique via createOrUpdate
     const response = await createdOrUpdated({

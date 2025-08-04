@@ -24,7 +24,7 @@ const ClientSchema = z.object({
   frequencePaiement: z.enum(['mensuel', 'hebdomadaire', 'quotidien', 'horaire', 'minute', 'unique']).optional().default('mensuel'),
   intervallePaiement: z.number().optional(),
   jourPaiement: z.number().optional(),
-  aPayer: z.boolean().optional().default(true),
+  aFAirePayer: z.boolean().optional(),
 
   // Nouvelle propriété ajoutée pour la date de programmation
   dateProgrammee: z.union([z.string(), z.date()]),
@@ -52,7 +52,7 @@ const DeleteClientSchema = z.object({
 });
 
 export const createClient = async (formData) => {
-  console.log("Début createClient - Données reçues:", formData);
+  //console.log("Début createClient - Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -66,14 +66,14 @@ export const createClient = async (formData) => {
     const validation = ClientSchema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, niveauService, useTarifBase, ...clientData } = validation.data;
 
-    console.log("Données validées:", { ...clientData, niveauService, useTarifBase });
-    console.log("URL de l'API:", `${CLIENT_URL}/${entrepriseId}/service/${serviceId}`);
+    //console.log("Données validées:", { ...clientData, niveauService, useTarifBase });
+    //console.log("URL de l'API:", `${CLIENT_URL}/${entrepriseId}/service/${serviceId}`);
 
     // Préparer les données à envoyer à l'API
     const dataToSend = { 
@@ -90,7 +90,7 @@ export const createClient = async (formData) => {
       data: dataToSend
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { type: "success", data: response };
   } catch (error) {
     console.error("Erreur dans createClient:", error);
@@ -104,7 +104,7 @@ export const createClient = async (formData) => {
 };
 
 export const updateClient = async (formData) => {
-  console.log("Début updateClient - Données reçues:", formData);
+  //("Début updateClient - Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -118,14 +118,14 @@ export const updateClient = async (formData) => {
     const validation = UpdateClientSchema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, clientId, niveauService, useTarifBase, ...clientData } = validation.data;
 
-    console.log("Données validées:", { ...clientData, niveauService, useTarifBase });
-    console.log("URL de l'API:", `${UPDATE_CLIENT_URL}/${entrepriseId}/service/${serviceId}/client/${clientId}`);
+    //console.log("Données validées:", { ...clientData, niveauService, useTarifBase });
+    //console.log("URL de l'API:", `${UPDATE_CLIENT_URL}/${entrepriseId}/service/${serviceId}/client/${clientId}`);
 
     // Préparer les données à envoyer à l'API
     const dataToSend = { 
@@ -143,7 +143,7 @@ export const updateClient = async (formData) => {
       updated: true
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { type: "success", data: response };
   } catch (error) {
     console.error("Erreur dans updateClient:", error);
@@ -156,8 +156,8 @@ export const updateClient = async (formData) => {
   }
 };
 export const addServiceToClient = async (formData) => {
-  console.log("🚀 addServiceToClient - Début de la fonction");
-  console.log("📦 Données reçues:", formData);
+  //console.log("🚀 addServiceToClient - Début de la fonction");
+ //console.log("📦 Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -168,34 +168,34 @@ export const addServiceToClient = async (formData) => {
       jourPaiement: typeof formData.jourPaiement === 'string' ? Number(formData.jourPaiement) : formData.jourPaiement,
     };
 
-    console.log("🔄 Données après conversion des types:", processedData);
+    //console.log("🔄 Données après conversion des types:", processedData);
 
     // Validation des données
     const validation = UpdateClientSchema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("❌ Échec de la validation:", validation.error.flatten());
+     // console.log("❌ Échec de la validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
-    console.log("✅ Validation réussie");
+   // console.log("✅ Validation réussie");
 
     // Extraire les données validées
     const { entrepriseId, serviceId, clientId, niveauService, useTarifBase, ...clientData } = validation.data;
 
     // Log des données validées
-    console.log("📋 Données validées:", { 
+  /*  // console.log("📋 Données validées:", { 
       entrepriseId,
       serviceId,
       clientId,
       niveauService,
       useTarifBase,
       ...clientData
-    });
+    }); */
 
     // Construction de l'URL pour l'ajout de service (URL CORRECTE)
     const apiUrl = `${ADD_CLIENT_TO_NEW_SERVICE_URL}/${entrepriseId}/service/${serviceId}/client/${clientId}`;
-    console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
+    //console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
 
     // Préparer les données à envoyer à l'API
     const dataToSend = { 
@@ -207,8 +207,8 @@ export const addServiceToClient = async (formData) => {
       })
     };
 
-    console.log("📤 Données à envoyer à l'API:", dataToSend);
-    console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
+    //console.log("📤 Données à envoyer à l'API:", dataToSend);
+    //console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
 
     // Appel à l'API avec l'URL CORRECTE pour l'ajout de service
     const response = await createdOrUpdated({ 
@@ -217,11 +217,11 @@ export const addServiceToClient = async (formData) => {
       updated: true // C'est un ajout, pas une mise à jour
     });
 
-    console.log("📥 Réponse brute de l'API:", response);
+   // console.log("📥 Réponse brute de l'API:", response);
 
     // Détection d'une réponse OTP
     if (response && response.pendingChangeId) {
-      console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
+     // console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
       
       // Retourner le format attendu par le composant ClientDialog
       return {
@@ -235,7 +235,7 @@ export const addServiceToClient = async (formData) => {
 
     // Si la réponse indique un succès
     if (response && (response.success === true || response.type === 'success')) {
-      console.log("✅ Service ajouté avec succès");
+     // console.log("✅ Service ajouté avec succès");
       return { 
         type: "success", 
         message: "Service ajouté avec succès",
@@ -244,7 +244,7 @@ export const addServiceToClient = async (formData) => {
     }
 
     // Cas par défaut (réponse non reconnue)
-    console.log("⚠️ Format de réponse non reconnu:", response);
+   // console.log("⚠️ Format de réponse non reconnu:", response);
     return { 
       type: "success", // Par défaut on suppose que c'est un succès
       data: response 
@@ -254,15 +254,15 @@ export const addServiceToClient = async (formData) => {
     
     // Log détaillé de l'erreur
     if (error.response) {
-      console.log("📌 Détails de l'erreur de réponse:");
-      console.log("- Status:", error.response.status);
-      console.log("- Data:", error.response.data);
-      console.log("- Headers:", error.response.headers);
+     // console.log("📌 Détails de l'erreur de réponse:");
+      //console.log("- Status:", error.response.status);
+     // console.log("- Data:", error.response.data);
+     // console.log("- Headers:", error.response.headers);
     } else if (error.request) {
-      console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
-      console.log("- Request:", error.request);
+    //  console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
+     // console.log("- Request:", error.request);
     } else {
-      console.log("📌 Erreur lors de la configuration de la requête:", error.message);
+     // console.log("📌 Erreur lors de la configuration de la requête:", error.message);
     }
     
     // Retourner une erreur formatée
@@ -274,7 +274,7 @@ export const addServiceToClient = async (formData) => {
   }
 };
 export const removeClientFromService = async (formData) => {
-  console.log("Début removeClientFromService - Données reçues:", formData);
+  //console.log("Début removeClientFromService - Données reçues:", formData);
 
   try {
     const formObject = formData instanceof FormData
@@ -284,14 +284,14 @@ export const removeClientFromService = async (formData) => {
     const validation = RemoveFromServiceSchema.safeParse(formObject);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+     // console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, clientId } = validation.data;
 
     const apiUrl = `${DELETE_CLIENT_URL_FOR_A_SERVICE}/${entrepriseId}/service/${serviceId}/client/${clientId}`;
-    console.log("URL de l'API pour retrait du service:", apiUrl);
+   // console.log("URL de l'API pour retrait du service:", apiUrl);
 
     // Suppression logique via createOrUpdate
     const response = await createdOrUpdated({
@@ -301,7 +301,7 @@ export const removeClientFromService = async (formData) => {
     });
     
     // Log complet de la réponse pour diagnostic
-    console.log("Réponse complète:", response);
+   // console.log("Réponse complète:", response);
     
     // Vérifier si la réponse est correctement formatée
     if (!response) {
@@ -337,7 +337,7 @@ export const removeClientFromService = async (formData) => {
   }
 };
 export const removeAgentFromService = async (formData) => {
-  console.log("Début removeClientFromService - Données reçues:", formData);
+  //console.log("Début removeClientFromService - Données reçues:", formData);
 
   try {
     const formObject = formData instanceof FormData
@@ -347,14 +347,14 @@ export const removeAgentFromService = async (formData) => {
     const validation = RemoveAgentFromServiceSchema.safeParse(formObject);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+     // console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
     const { entrepriseId, serviceId, agentId } = validation.data;
 
     const apiUrl = `${DELETE_AGENT_URL_FOR_A_SERVICE}/${entrepriseId}/service/${serviceId}/agent/${agentId}`;
-    console.log("URL de l'API pour retrait du service:", apiUrl);
+  //  console.log("URL de l'API pour retrait du service:", apiUrl);
 
     // Suppression logique via createOrUpdate
     const response = await createdOrUpdated({
@@ -364,7 +364,7 @@ export const removeAgentFromService = async (formData) => {
     });
     
     // Log complet de la réponse pour diagnostic
-    console.log("Réponse complète:", response);
+    //console.log("Réponse complète:", response);
     
     // Vérifier si la réponse est correctement formatée
     if (!response) {
@@ -400,7 +400,7 @@ export const removeAgentFromService = async (formData) => {
   }
 };
 export async function deleteClient(formData) {
-  console.log("Début deleteClient - Données reçues:", formData);
+ // console.log("Début deleteClient - Données reçues:", formData);
 
   try {
     const token = (await cookies()).get("token")?.value;
@@ -419,14 +419,14 @@ export async function deleteClient(formData) {
     const validation = DeleteClientSchema.safeParse(formObject);
     
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+    //  console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
     
     const { entrepriseId, clientId } = validation.data;
     const deleteUrl = `${DELETE_CLIENT_URL}/${entrepriseId}/client/${clientId}`;
     
-    console.log("URL de l'API pour suppression définitive:", deleteUrl);
+    //console.log("URL de l'API pour suppression définitive:", deleteUrl);
     
     // Requête de suppression avec l'autorisation
     const response = await axios({
@@ -439,7 +439,7 @@ export async function deleteClient(formData) {
       }
     });
     
-    console.log("Réponse de suppression définitive:", response.data);
+   // console.log("Réponse de suppression définitive:", response.data);
     
     // Vérifier si un ID de changement en attente est retourné (pour l'OTP)
     if (response.data?.pendingChangeId) {
@@ -461,8 +461,8 @@ export async function deleteClient(formData) {
     console.error("Erreur lors de la suppression du client:", error);
     
     if (error.response) {
-      console.log("Statut:", error.response.status);
-      console.log("Données:", error.response.data);
+     // console.log("Statut:", error.response.status);
+     // console.log("Données:", error.response.data);
       
       if (error.response.status === 404) {
         return {
@@ -481,8 +481,8 @@ export async function deleteClient(formData) {
 
 
 export const addServiceToAgent = async (formData) => {
-  console.log("🚀 addServiceToClient - Début de la fonction");
-  console.log("📦 Données reçues:", formData);
+ // console.log("🚀 addServiceToClient - Début de la fonction");
+ // console.log("📦 Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -492,35 +492,35 @@ export const addServiceToAgent = async (formData) => {
       intervallePaiement: typeof formData.intervallePaiement === 'string' ? Number(formData.intervallePaiement) : formData.intervallePaiement,
       jourPaiement: typeof formData.jourPaiement === 'string' ? Number(formData.jourPaiement) : formData.jourPaiement,
     };
-
-    console.log("🔄 Données après conversion des types:", processedData);
+//
+   // console.log("🔄 Données après conversion des types:", processedData);
 
     // Validation des données
     const validation = UpdateAgentSchema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("❌ Échec de la validation:", validation.error.flatten());
+     // console.log("❌ Échec de la validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
-    console.log("✅ Validation réussie");
+   // console.log("✅ Validation réussie");
 
     // Extraire les données validées
     const { entrepriseId, serviceId, agentId, niveauService, useTarifBase, ...clientData } = validation.data;
 
     // Log des données validées
-    console.log("📋 Données validées:", { 
+    /* console.log("📋 Données validées:", { 
       entrepriseId,
       serviceId,
       agentId,
       niveauService,
       useTarifBase,
       ...clientData
-    });
+    }); */
 
     // Construction de l'URL pour l'ajout de service (URL CORRECTE)
     const apiUrl = `${ADD_AGENT_TO_NEW_SERVICE_URL}/${entrepriseId}/service/${serviceId}/agent/${agentId}`;
-    console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
+    //console.log("🌐 URL correcte pour l'ajout de service:", apiUrl);
 
     // Préparer les données à envoyer à l'API
     const dataToSend = { 
@@ -532,8 +532,8 @@ export const addServiceToAgent = async (formData) => {
       })
     };
 
-    console.log("📤 Données à envoyer à l'API:", dataToSend);
-    console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
+    //console.log("📤 Données à envoyer à l'API:", dataToSend);
+    //console.log("🔄 Appel de createdOrUpdated avec URL correcte pour ajout de service");
 
     // Appel à l'API avec l'URL CORRECTE pour l'ajout de service
     const response = await createdOrUpdated({ 
@@ -542,11 +542,11 @@ export const addServiceToAgent = async (formData) => {
       updated: true // C'est un ajout, pas une mise à jour
     });
 
-    console.log("📥 Réponse brute de l'API:", response);
+   //console.log("📥 Réponse brute de l'API:", response);
 
     // Détection d'une réponse OTP
     if (response && response.pendingChangeId) {
-      console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
+     // console.log("🔑 Réponse OTP détectée - pendingChangeId:", response.pendingChangeId);
       
       // Retourner le format attendu par le composant ClientDialog
       return {
@@ -560,7 +560,7 @@ export const addServiceToAgent = async (formData) => {
 
     // Si la réponse indique un succès
     if (response && (response.success === true || response.type === 'success')) {
-      console.log("✅ Service ajouté avec succès");
+     // console.log("✅ Service ajouté avec succès");
       return { 
         type: "success", 
         message: "Service ajouté avec succès",
@@ -569,7 +569,7 @@ export const addServiceToAgent = async (formData) => {
     }
 
     // Cas par défaut (réponse non reconnue)
-    console.log("⚠️ Format de réponse non reconnu:", response);
+   // console.log("⚠️ Format de réponse non reconnu:", response);
     return { 
       type: "success", // Par défaut on suppose que c'est un succès
       data: response 
@@ -579,15 +579,15 @@ export const addServiceToAgent = async (formData) => {
     
     // Log détaillé de l'erreur
     if (error.response) {
-      console.log("📌 Détails de l'erreur de réponse:");
-      console.log("- Status:", error.response.status);
-      console.log("- Data:", error.response.data);
-      console.log("- Headers:", error.response.headers);
+      //console.log("📌 Détails de l'erreur de réponse:");
+      //console.log("- Status:", error.response.status);
+      //console.log("- Data:", error.response.data);
+      //console.log("- Headers:", error.response.headers);
     } else if (error.request) {
-      console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
-      console.log("- Request:", error.request);
+      //console.log("📌 La requête a été envoyée mais n'a pas reçu de réponse");
+      //console.log("- Request:", error.request);
     } else {
-      console.log("📌 Erreur lors de la configuration de la requête:", error.message);
+      //console.log("📌 Erreur lors de la configuration de la requête:", error.message);
     }
     
     // Retourner une erreur formatée

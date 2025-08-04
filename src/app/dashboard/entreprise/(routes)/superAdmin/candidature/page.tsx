@@ -7,16 +7,16 @@ import EntrepriseInactive from './_components/Reqentreprise'
 const AdminPage = async () => {
 
   const entreprises = await fetchJSON(`${ENTERPRISES_INACTIVES_ENDPOINT}`)
-  console.log(entreprises);
+  //console.log(entreprises);
     const en = await fetchJSON(`${ALL_ENTERPRISES_ENDPOINT}`)
-  console.log(en);
+  //console.log(en);
   // Récupérer l'ID de la première entreprise pour les modifications en attente
   const currentEnterpriseId = entreprises.entreprises?.[0]?._id
-  console.log("ID de l'entreprise actuelle:", currentEnterpriseId)
+  //console.log("ID de l'entreprise actuelle:", currentEnterpriseId)
   
   // Récupérer les modifications en attente (comme dans votre code original)
   const pendingChanges = await fetchJSON(`${PENDING_CHANGES_ENDPOINT}/${currentEnterpriseId}`)
-  console.log("Modifications en attente:", pendingChanges.data)
+  //console.log("Modifications en attente:", pendingChanges.data)
  
   return (
     <div className="space-y-8 p-6">

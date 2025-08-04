@@ -33,7 +33,7 @@ export const validatePendingChange = async (formData: {
       }
   
       const { entrepriseId, pendingChangeId, otp } = validation.data;
-  console.log(`${ACCEPTED_PENDING_ENDPOINT}/${entrepriseId}`);
+  //console.log(`${ACCEPTED_PENDING_ENDPOINT}/${entrepriseId}`);
   
       const response = await createdOrUpdated({
         url: `${ACCEPTED_PENDING_ENDPOINT}/${entrepriseId}`,

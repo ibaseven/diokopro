@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { CLIENT_URL, CREATE_AGENT_URL, DELETE_AGENT_URL, UPDATE_AGENT_URL } from "./endpoint";
+import { CREATE_AGENT_URL, DELETE_AGENT_URL, UPDATE_AGENT_URL } from "./endpoint";
 import { createdOrUpdated } from "@/lib/api";
 import axios from "axios";
 import { cookies } from "next/headers";
@@ -30,6 +30,7 @@ const AgentSchema = z.object({
   intervallePaiement: z.number().optional(),
   jourPaiement: z.number().optional(),
   dateProgrammee: z.union([z.string(), z.date()]),
+  aPayer: z.boolean().optional()
 });
 
 const DeleteAgentSchema = z.object({
@@ -43,7 +44,7 @@ const UpdateAgentschema = AgentSchema.partial().extend({
 });
 
 export const createAgent = async (formData) => {
-  console.log("Début createAgent - Données reçues:", formData);
+ // console.log("Début createAgent - Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -61,7 +62,7 @@ export const createAgent = async (formData) => {
     const validation = AgentSchema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+     // console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
@@ -69,15 +70,15 @@ export const createAgent = async (formData) => {
       
      } = validation.data;
 
-    console.log("Données validées:", agentData);
-    console.log("URL de l'API:", `${CREATE_AGENT_URL}/${entrepriseId}/service/${serviceId}`);
+    //console.log("Données validées:", agentData);
+   // console.log("URL de l'API:", `${CREATE_AGENT_URL}/${entrepriseId}/service/${serviceId}`);
 
     const response = await createdOrUpdated({ 
       url: `${CREATE_AGENT_URL}/${entrepriseId}/service/${serviceId}`, 
       data: agentData 
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { type: "success", data: response };
   } catch (error) {
     console.error("Erreur dans createAgent:", error);
@@ -91,7 +92,7 @@ export const createAgent = async (formData) => {
 };
 
 export const updatedAgent = async (formData) => {
-  console.log("Début updateAgent - Données reçues:", formData);
+ /// console.log("Début updateAgent - Données reçues:", formData);
 
   try {
     // Convertir les champs numériques si nécessaire
@@ -105,7 +106,7 @@ export const updatedAgent = async (formData) => {
     const validation = UpdateAgentschema.safeParse(processedData);
 
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+     // console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
 
@@ -114,8 +115,8 @@ export const updatedAgent = async (formData) => {
     // Construction de l'URL avec les IDs validés
     const apiUrl = `${UPDATE_AGENT_URL}/${entrepriseId}/agent/${agentId}`;
 
-    console.log("Données validées:", agentData);
-    console.log("URL de l'API:", apiUrl);
+   // console.log("Données validées:", agentData);
+   // console.log("URL de l'API:", apiUrl);
 
     const response = await createdOrUpdated({ 
       url: apiUrl, 
@@ -123,7 +124,7 @@ export const updatedAgent = async (formData) => {
       updated: true
     });
 
-    console.log("Réponse API:", response);
+    //console.log("Réponse API:", response);
     return { type: "success", data: response };
   } catch (error) {
     console.error("Erreur dans updateAgent:", error);
@@ -146,7 +147,7 @@ export const updatedAgent = async (formData) => {
 }
 
 export async function deleteAgent(formData) {
-  console.log("Début deleteAgent - Données reçues:", formData);
+ // console.log("Début deleteAgent - Données reçues:", formData);
 
   try {
     const token = (await cookies()).get("token")?.value;
@@ -165,14 +166,14 @@ export async function deleteAgent(formData) {
     const validation = DeleteAgentSchema.safeParse(formObject);
     
     if (!validation.success) {
-      console.log("Échec validation:", validation.error.flatten());
+      //console.log("Échec validation:", validation.error.flatten());
       return { type: "error", errors: validation.error.flatten().fieldErrors };
     }
     
     const { entrepriseId, agentId } = validation.data;
     const deleteUrl = `${DELETE_AGENT_URL}/${entrepriseId}/agent/${agentId}`;
     
-    console.log("URL de l'API pour suppression définitive:", deleteUrl);
+   // console.log("URL de l'API pour suppression définitive:", deleteUrl);
     
     // Requête de suppression avec l'autorisation
     const response = await axios({
@@ -185,7 +186,7 @@ export async function deleteAgent(formData) {
       }
     });
     
-    console.log("Réponse de suppression définitive:", response.data);
+    //console.log("Réponse de suppression définitive:", response.data);
     
     // Vérifier si un ID de changement en attente est retourné (pour l'OTP)
     if (response.data?.pendingChangeId) {
@@ -207,8 +208,8 @@ export async function deleteAgent(formData) {
     console.error("Erreur lors de la suppression de l'agent:", error);
     
     if (error.response) {
-      console.log("Statut:", error.response.status);
-      console.log("Données:", error.response.data);
+     /// console.log("Statut:", error.response.status);
+     // console.log("Données:", error.response.data);
       
       if (error.response.status === 404) {
         return {

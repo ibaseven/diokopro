@@ -8,7 +8,7 @@ const AgentPage = async () => {
   const enterprises = await fetchJSON(ENTERPRISES_ENDPOINT);
   const currentEnterpriseId = enterprises[0]?._id; // Assuming you want the first enterprise
   const agent =await fetchJSON(`${GET_ALL_AGENTS}/${currentEnterpriseId}`);
-  console.log("++++++++++",agent);
+  //console.log("++++++++++",agent);
   
 
   if (!currentEnterpriseId) {

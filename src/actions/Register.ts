@@ -6,7 +6,7 @@ import { REGISTER_URL } from "./endpoint";
 
 export const register = async (state: any, formData: any) => {
     try {
-        console.log("Données du formulaire reçues:", formData);
+        //console.log("Données du formulaire reçues:", formData);
 
         // Validation avec Zod
         const validationResult = RegisterSchema.safeParse(formData);
@@ -36,8 +36,8 @@ export const register = async (state: any, formData: any) => {
             representéPar: validatedData.representéPar
         };
 
-        console.log("Données préparées pour l'envoi:", requestData);
-        console.log(REGISTER_URL);
+        //console.log("Données préparées pour l'envoi:", requestData);
+        //console.log(REGISTER_URL);
         const res = await axios.post(REGISTER_URL, requestData);
 
 

@@ -2,9 +2,10 @@
 
 import axios from "axios";
 import { LoginSchema } from "@/schemas/loginschema";
+import { API_URL } from "./endpoint";
 
 // Définissez l'URL de connexion ici
-const LOGIN_URL = "http://localhost:5000/api/auth/sign";
+const LOGIN_URL = `${API_URL  }/auth/sign`;
 
 export const login = async (state: any, formData: FormData) => {
   try {

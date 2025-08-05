@@ -733,14 +733,14 @@ const CreateClientModal = ({ services = [], entrepriseId = "" }: CreateClientMod
                     <label className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        name="aPayer"
+                        name="aFAirePayer"
                         checked={formData.aFAirePayer}
                         onChange={handleCheckboxChange}
                         className="w-5 h-5 text-orange-500 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                       />
                       <div className="flex flex-col">
                         <span className={`font-medium ${formData.aFAirePayer ? 'text-green-600' : 'text-red-600'}`}>
-                          {formData.aFAirePayer ? '✅ Client vas payer' : ' ❌Client ne vas payé'}
+                          {formData.aFAirePayer ? '✅ Client vas payer' : '❌Client ne vas payé'}
                         </span>
                         <span className="text-xs text-gray-500">
                           {formData.aFAirePayer 

@@ -19,11 +19,11 @@ interface CreateServiceModalProps {
 const CreateServiceModal = ({ enterprises }: CreateServiceModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [niveaux, setNiveaux] = useState([{ nom: "standard", tarif: "" }]);
+  const [niveaux, setNiveaux] = useState([{ nom: "standard", tarif: 0 }]);
   const [formData, setFormData] = useState({
     nomService: "",
     description: "",
-    tarifactionBase: "",
+    tarifactionBase: 0,
   });
   
   // États pour la vérification OTP
